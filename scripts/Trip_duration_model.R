@@ -1,0 +1,67 @@
+####
+# Clean Data - Regression Model of Trip Duration
+#
+# Load in the trip duration data from raw/2018_travel_data/trips_on_BI.csv
+# and raw/2018_travel_data/trips_to_EG.csv
+#
+# Model trip duration as a function of destination for each ad2 destination
+#
+# August 12, 2019
+#
+####
+
+library(here)
+library(data.table)
+
+# Fit data for trips to EG ####
+
+# Load the data from EG
+eg.dat <- fread("data/raw/2018_travel_data/trips_to_EG.csv")
+eg.dat <- eg.dat[!is.na(nights)]
+
+# Fit to an exponential decay, using maximum likelihood:
+f <- optimise(f = function(l){
+  sum(dexp(x = eg.dat[!is.na(nights)]$nights, rate = l, log = TRUE))
+  }, 
+  interval = c(0,1), 
+  maximum = TRUE)
+# This is the decay rate that maximizes the likelihood
+lambda.eg <- f$maximum # 0.04713604
+
+# Make a histogram
+h <- hist(eg.dat$nights, breaks = seq(0,380,7))
+# and the fit itself
+x <- seq(0,370,1)
+y <- dexp(x = x, rate = 0.0471359, log = FALSE)
+# Plot the data, just to show that it works okay:
+plot(h$breaks[1:54] + 3.5, h$density, col = "blue")
+points(x,y, add =TRUE, axes = FALSE)
+
+
+  
+
+# Fit data for the other destinations on the island ####
+bi.dat <- fread("data/raw/2018_travel_data/trips_on_BI.csv")
+bi.dat <- bi.dat[!is.na(nights)]
+
+# First thing to try: average duration for everywhere on the island:
+
+f.bi.all <- optimise(f = function(l){
+    sum(dexp(x = bi.dat$nights, rate = l, log = TRUE))
+  }, 
+  interval = c(0,1), 
+  maximum = TRUE)
+lambda.bi.all <- f.bi.all$maximum # 0.09670302
+1/f.bi.all$maximum # average is a 10-day stay
+
+# make a histogram, and plot everything again
+h <- hist(bi.dat$nights, breaks = seq(0,271,1))
+x <- seq(0,270,1)
+y <- dexp(x = x, rate = lambda.bi.all, log = FALSE)
+# Plot the data, just to show that it works okay:
+plot(h$breaks[1:271] + 1, h$density, col = "blue")
+points(x,y, add =TRUE, axes = FALSE)
+
+
+# Next thing to try: average duration for each separate destination on the island
+# This will require being able to say which ad4's belong to which ad2s
