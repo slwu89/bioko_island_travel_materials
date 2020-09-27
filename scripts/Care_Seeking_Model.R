@@ -26,9 +26,14 @@ care.fever <- merge(care.fever, reg.travel.dist[,.(areaId, dist.mal)])
 care.fever[is.na(n)]$n <- 0
 care.fever[is.na(pf)]$pf <- 0
 care.fever[is.na(pffv)]$pffv <- 0
-care.fever[is.na(pftto)]$pffto <- 0
+care.fever[is.na(pftto)]$pftto <- 0
 
-sum(h$pffv)/sum(h$pf)
+# Overall, aggregated across the island, the rate of fevers reported | Pf positive
+# 0.1116336
+sum(care.fever$pffv)/sum(care.fever$pf)
+# Overall, aggregated across the island, the rate of treatment reported | fever
+# 0.6025641
+sum(care.fever$pftto)/sum(care.fever$pffv)
 
 # probability of reporting fever, given that one had reported an infection
 # perform binomial model fit, similar to how we fit the travel frequency model (Travel_frequency_model.R)

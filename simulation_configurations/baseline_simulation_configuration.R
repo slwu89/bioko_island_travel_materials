@@ -242,7 +242,7 @@ log_pars[[2]] <- list(outfile = mosy,
 # Use the seed passed to this program
 set.seed(1)
 # 
-run_macro(tmax = 365,
+run_macro(tmax = 7*365,
           human_pars = human_pars,
           mosquito_pars = mosy_pars,
           patch_pars = patch_pars,
