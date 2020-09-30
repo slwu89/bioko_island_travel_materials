@@ -15,9 +15,11 @@ library(data.table)
 
 # Fit data for trips to EG ####
 
-# Load the data from EG
-eg.dat <- fread("data/raw/2018_travel_data/trips_to_EG.csv")
-eg.dat <- eg.dat[!is.na(nights)]
+# Load the data:
+dat <- fread(here("data/clean/BI_travel_duration_data.csv"))
+# split data into on-island and off-island
+eg.dat <- dat[destination == "on_island"]
+bi.dat <- dat[destination == "off_island" & !is.na(nights)]
 
 # Fit to an exponential decay, using maximum likelihood:
 f <- optimise(f = function(l){
@@ -38,13 +40,7 @@ plot(h$breaks[1:54] + 3.5, h$density, col = "blue")
 points(x,y, add =TRUE, axes = FALSE)
 
 
-  
-
-# Fit data for the other destinations on the island ####
-bi.dat <- fread("data/raw/2018_travel_data/trips_on_BI.csv")
-bi.dat <- bi.dat[!is.na(nights)]
-
-# First thing to try: average duration for everywhere on the island:
+# QWerage duration for travel anywhere on the island:
 
 f.bi.all <- optimise(f = function(l){
     sum(dexp(x = bi.dat$nights, rate = l, log = TRUE))
@@ -61,7 +57,3 @@ y <- dexp(x = x, rate = lambda.bi.all, log = FALSE)
 # Plot the data, just to show that it works okay:
 plot(h$breaks[1:271] + 1, h$density, col = "blue")
 points(x,y, add =TRUE, axes = FALSE)
-
-
-# Next thing to try: average duration for each separate destination on the island
-# This will require being able to say which ad4's belong to which ad2s
