@@ -1,6 +1,9 @@
 ##
 #
-# Script for Outputting Baseline Bioko Island Simulations
+# Script for Outputting Bioko Island Simulations
+# Travel Vaccination
+# Incorporate a vaccination strategy
+# Travelers are subject to vaccination
 #
 # Daniel T Citron
 #
@@ -37,6 +40,12 @@ trip.duration.bi <- 1/0.09670302 # rate of return from trips on bioko
 # care seeking behavior
 FeverPf = 0.1116336
 TreatPf = 0.602
+
+# Vaccination parameters
+PEProtectPf = 1 # probability that the vaccine will work in the person who receives it 
+peBlockPf = .5 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
+mnPEPf = 300# duration of vaccine
+vrPEPf = 60 # variance in duration of vaccine
 
 # PfPR data
 pfpr.data <- fread(here("data/clean/pfpr_draws.csv"))
@@ -129,7 +138,10 @@ Lambda[242] = 0 # for off-island
 
 # PfSI Parameters ####
 # Parameters define probabilities of symptomatic malaria and treatment seeking
-pfsi_pars <- pfsi_parameters(FeverPf = 0.1116336, TreatPf = 0.602)
+pfsi_pars <- pfsi_parameters(FeverPf = 0.1116336, TreatPf = 0.602,
+                             PEProtectPf = PEProtectPf,
+                             peBlockPf = peBlockPf,
+                             mnPEPf = mnPEPf, vrPEPf = vrPEPf)
 
 # Patch Parameters ####
 # set up patches (n is how many patches we have)
@@ -204,11 +216,25 @@ for(i in 1:n.humans){
                                         bite_algorithm = 0)
 }
 
+# Vaccination schedule
+vaxx_id <- 0:(n.humans - 1)
+# Set vaccination schedule for each human
+# List of vaccination events - first round
+vaxx_pars <- lapply(X = vaxx_id,FUN = function(id){
+  vaccination_pfsi_conpars(id = id,
+                           t = 3*365,
+                           treat = T,
+                           type = "PE")
+})
+
+travel_vaxx_pars <- c(treat_travelers = True, vax_travelers = True, destination_for_vax = (last))
+
+
 # Run Simulation ####
 
 # Define Output Path Names #
 log_pars <- list()
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("vaccination_pfsi_", 1, ".csv"))
 log_pars[[1]] <- list(outfile = h_inf, 
                       key = "pfsi",
                       header = paste0(c("time",
@@ -221,7 +247,7 @@ log_pars[[1]] <- list(outfile = h_inf,
                                       collapse = ",")
 )
 
-mosy <-  here("data/simulation_outputs", paste0("mosy_", 1, ".csv"))
+mosy <-  here("data/simulation_outputs", paste0("vaccination_mosy_", 1, ".csv"))
 log_pars[[2]] <- list(outfile = mosy,
                       key = "mosquito",
                       header = paste0(c("time",
@@ -238,14 +264,14 @@ run_macro(tmax = 7*365,
           patch_pars = patch_pars,
           model_pars = pfsi_pars,
           log_streams = log_pars,
-          vaxx_events = NULL,
+          vaxx_events = vaxx_pars, # Vaccination here
           verbose = T)
 
 
 # Analyzing the output ####
 library(ggplot2)
 
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("vaccination_pfsi_", 1, ".csv"))
 dt <- fread(h_inf)
 
 # Create a new data table to merge onto the simulation output, to track population denominators over time

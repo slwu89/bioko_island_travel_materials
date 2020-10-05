@@ -1,6 +1,11 @@
 ##
 #
-# Script for Outputting Baseline Bioko Island Simulations
+# Script for Outputting Bioko Island Simulations
+# Local Residual Transmission - 
+# The amount of transmission that remains when no cases occur among travelers
+# and all cases are transmitted locally on Bioko Island.
+# Local force of infection is calculated the same as for the baseline simulations on
+# Bioko Island, but the force of infection is set to zero on the mainland during the simulation
 #
 # Daniel T Citron
 #
@@ -95,6 +100,9 @@ pfpr.draw.colname = paste0("draw.", pfpr.draw.ix)
 pfpr.data.draw = pfpr.data[,c("areaId", pfpr.draw.colname), with = FALSE]
 colnames(pfpr.data.draw)[2] = "pfpr"
 pop.data <- merge(pop.data[year == 2018], pfpr.data.draw, by = "areaId")
+# Local Residual: This is the PfPR input which we use to calibrate FOI 
+# it is not the same as kappa, which we do use to parameterize lambda etc
+# We will set FOI to zero off-island later
 pfpr.input <- c(pop.data$pfpr, 0.43)
 
 # See Ruktanonchai et al. (2016) and Supplementary Information for derivation
@@ -112,10 +120,12 @@ X.visitors <- t((c(pop.data[year == 2018]$pop, 0) * pfpr.input)  %*% TaR.matrix)
 # This is the number of people who are sick, including visitors and residents both
 kappa <- X.visitors/H.visitors
 # Define kappa off-island, based on PfPR off-island
-kappa[242] <- .43
+# Local Residual fraction: in this case we set it to 0
+kappa[242] <- 0
 z.spz <- peip*a*c*kappa/(p*a*c*kappa + (1-p))
 # this is Z/M, but we currently do not know M
-M = h.FOI*H.visitors/a/b/z.spz
+# Local Residual fraction: set to 0 off-island
+M = c(h.FOI[1:241]*H.visitors[1:241]/a/b/z.spz[1:241], 0)  
 
 Z = z.spz * M
 Z[242] = 0 # for off-island
@@ -136,7 +146,8 @@ pfsi_pars <- pfsi_parameters(FeverPf = 0.1116336, TreatPf = 0.602)
 n.patch <- 242 # 241 + 1 : the last patch is off-island
 
 # set the EIR off-island
-eg.eir <- h.FOI[242]/b
+# Local residual faction: zero off-island transmission
+eg.eir <- 0 
 patch_pars <- patches_parameters(move = movement.matrix,
                                  bWeightZoo = rep(0,n.patch),
                                  bWeightZootox = rep(0,n.patch),
@@ -208,7 +219,7 @@ for(i in 1:n.humans){
 
 # Define Output Path Names #
 log_pars <- list()
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("local_residual_pfsi_", 1, ".csv"))
 log_pars[[1]] <- list(outfile = h_inf, 
                       key = "pfsi",
                       header = paste0(c("time",
@@ -221,7 +232,7 @@ log_pars[[1]] <- list(outfile = h_inf,
                                       collapse = ",")
 )
 
-mosy <-  here("data/simulation_outputs", paste0("mosy_", 1, ".csv"))
+mosy <-  here("data/simulation_outputs", paste0("local_residual_mosy_", 1, ".csv"))
 log_pars[[2]] <- list(outfile = mosy,
                       key = "mosquito",
                       header = paste0(c("time",
@@ -245,7 +256,7 @@ run_macro(tmax = 7*365,
 # Analyzing the output ####
 library(ggplot2)
 
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("local_residual_pfsi_", 1, ".csv"))
 dt <- fread(h_inf)
 
 # Create a new data table to merge onto the simulation output, to track population denominators over time

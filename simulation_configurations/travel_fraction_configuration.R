@@ -1,6 +1,9 @@
 ##
 #
-# Script for Outputting Baseline Bioko Island Simulations
+# Script for Outputting Bioko Island Simulations
+# Travel fraction:
+# We will turn off local EIR in all locations except for off-island
+# We will see how off-island infections alone drive the transmission everywhere
 #
 # Daniel T Citron
 #
@@ -39,6 +42,7 @@ FeverPf = 0.1116336
 TreatPf = 0.602
 
 # PfPR data
+# Travel Fraction: won't actually need this
 pfpr.data <- fread(here("data/clean/pfpr_draws.csv"))
 pfpr.data <- merge(pfpr.data, pop.data[year == 2018, .(areaId)], by = "areaId", all = FALSE)
 
@@ -91,11 +95,13 @@ for (i in 1:242){
 set.seed(1)
 pfpr.draw.ix <- sample(1:100, 1)
 # Draw from PfPR surface
-pfpr.draw.colname = paste0("draw.", pfpr.draw.ix)
-pfpr.data.draw = pfpr.data[,c("areaId", pfpr.draw.colname), with = FALSE]
-colnames(pfpr.data.draw)[2] = "pfpr"
-pop.data <- merge(pop.data[year == 2018], pfpr.data.draw, by = "areaId")
-pfpr.input <- c(pop.data$pfpr, 0.43)
+# Travel Fraction: most of these steps can be ignored
+#pfpr.draw.colname = paste0("draw.", pfpr.draw.ix)
+#pfpr.data.draw = pfpr.data[,c("areaId", pfpr.draw.colname), with = FALSE]
+#colnames(pfpr.data.draw)[2] = "pfpr"
+#pop.data <- merge(pop.data[year == 2018], pfpr.data.draw, by = "areaId")
+# Travel Fraction: set the input PfPR to 0, except for off-island
+pfpr.input <- c(rep(0, 241), 0.43)
 
 # See Ruktanonchai et al. (2016) and Supplementary Information for derivation
 odds.vector <- r/(1-rho)*pfpr.input/(1-(1+rho*r/eta/(1-rho))*pfpr.input)
@@ -115,17 +121,18 @@ kappa <- X.visitors/H.visitors
 kappa[242] <- .43
 z.spz <- peip*a*c*kappa/(p*a*c*kappa + (1-p))
 # this is Z/M, but we currently do not know M
-M = h.FOI*H.visitors/a/b/z.spz
+# Travel Fraction: setting M to 0 everywhere on the Island
+M = rep(0, 242) # M = h.FOI*H.visitors/a/b/z.spz
 
-Z = z.spz * M
-Z[242] = 0 # for off-island
-Y = Z/peip
-Y[242] = 0 # for off-island
+# Travel Fraction: setting initial mosquito populations to 0 also
+Z = rep(0, 242) 
+Y = rep(0, 242)
 
 # Derive Lambda, set the emergence rate of mosquitoes in each of the patches
 # this is Lambda, calculated based on equilibrium value for the emergence process
-Lambda = M*(1-p)/p
-Lambda[242] = 0 # for off-island
+# Travel Fraction: this can be zero everywhere
+Lambda = rep(0,242)
+
 
 # PfSI Parameters ####
 # Parameters define probabilities of symptomatic malaria and treatment seeking
@@ -208,7 +215,7 @@ for(i in 1:n.humans){
 
 # Define Output Path Names #
 log_pars <- list()
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("travel_fraction_pfsi_", 1, ".csv"))
 log_pars[[1]] <- list(outfile = h_inf, 
                       key = "pfsi",
                       header = paste0(c("time",
@@ -221,7 +228,7 @@ log_pars[[1]] <- list(outfile = h_inf,
                                       collapse = ",")
 )
 
-mosy <-  here("data/simulation_outputs", paste0("mosy_", 1, ".csv"))
+mosy <-  here("data/simulation_outputs", paste0("travel_fraction_mosy_", 1, ".csv"))
 log_pars[[2]] <- list(outfile = mosy,
                       key = "mosquito",
                       header = paste0(c("time",
@@ -245,7 +252,7 @@ run_macro(tmax = 7*365,
 # Analyzing the output ####
 library(ggplot2)
 
-h_inf <- here("data/simulation_outputs", paste0("pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("travel_fraction_pfsi_", 1, ".csv"))
 dt <- fread(h_inf)
 
 # Create a new data table to merge onto the simulation output, to track population denominators over time
