@@ -3,7 +3,7 @@
 # Script for Outputting Bioko Island Simulations
 # Travel Vaccination
 # Incorporate a vaccination strategy
-# Travelers are subject to vaccination
+# Travelers are subject to vaccination and treatment with prophylaxis upon departure
 #
 # Daniel T Citron
 #
@@ -43,7 +43,7 @@ TreatPf = 0.602
 
 # Vaccination parameters
 PEProtectPf = 1 # probability that the vaccine will work in the person who receives it 
-peBlockPf = .5 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
+peBlockPf = 1 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
 mnPEPf = 300# duration of vaccine
 vrPEPf = 60 # variance in duration of vaccine
 
@@ -141,7 +141,9 @@ Lambda[242] = 0 # for off-island
 pfsi_pars <- pfsi_parameters(FeverPf = 0.1116336, TreatPf = 0.602,
                              PEProtectPf = PEProtectPf,
                              peBlockPf = peBlockPf,
-                             mnPEPf = mnPEPf, vrPEPf = vrPEPf)
+                             mnPEPf = mnPEPf, vrPEPf = vrPEPf,
+                             travel_vaxx = TRUE, # vaccinate people as they travel
+                             travel_treat = TRUE) # treat people as they travel
 
 # Patch Parameters ####
 # set up patches (n is how many patches we have)
@@ -216,25 +218,11 @@ for(i in 1:n.humans){
                                         bite_algorithm = 0)
 }
 
-# Vaccination schedule
-vaxx_id <- 0:(n.humans - 1)
-# Set vaccination schedule for each human
-# List of vaccination events - first round
-vaxx_pars <- lapply(X = vaxx_id,FUN = function(id){
-  vaccination_pfsi_conpars(id = id,
-                           t = 3*365,
-                           treat = T,
-                           type = "PE")
-})
-
-travel_vaxx_pars <- c(treat_travelers = True, vax_travelers = True, destination_for_vax = (last))
-
-
 # Run Simulation ####
 
 # Define Output Path Names #
 log_pars <- list()
-h_inf <- here("data/simulation_outputs", paste0("vaccination_pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("travel_vaccination_pfsi_", 1, ".csv"))
 log_pars[[1]] <- list(outfile = h_inf, 
                       key = "pfsi",
                       header = paste0(c("time",
@@ -247,7 +235,7 @@ log_pars[[1]] <- list(outfile = h_inf,
                                       collapse = ",")
 )
 
-mosy <-  here("data/simulation_outputs", paste0("vaccination_mosy_", 1, ".csv"))
+mosy <-  here("data/simulation_outputs", paste0("travel_vaccination_mosy_", 1, ".csv"))
 log_pars[[2]] <- list(outfile = mosy,
                       key = "mosquito",
                       header = paste0(c("time",
@@ -258,20 +246,20 @@ log_pars[[2]] <- list(outfile = mosy,
 # Set random seed
 set.seed(1)
 # 
-run_macro(tmax = 7*365,
+run_macro(tmax = 365,
           human_pars = human_pars,
           mosquito_pars = mosy_pars,
           patch_pars = patch_pars,
           model_pars = pfsi_pars,
           log_streams = log_pars,
-          vaxx_events = vaxx_pars, # Vaccination here
+          vaxx_events = NULL,
           verbose = T)
 
 
 # Analyzing the output ####
 library(ggplot2)
 
-h_inf <- here("data/simulation_outputs", paste0("vaccination_pfsi_", 1, ".csv"))
+h_inf <- here("data/simulation_outputs", paste0("travel_vaccination_pfsi_", 1, ".csv"))
 dt <- fread(h_inf)
 
 # Create a new data table to merge onto the simulation output, to track population denominators over time
@@ -293,3 +281,14 @@ h <- melt(dt[areaId %in%  c(152, 207, 220,335,502, 644, 1175,2199,2457)],
 ggplot(data = h) +
   geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
   facet_wrap(~areaId)
+
+
+dt.baseline <- fread(here("data/simulation_outputs", paste0("pfsi_", 1, ".csv")))
+dt.baseline <- merge(dt.baseline, pop.dt, by = "patch")
+dt.baseline[, s := (S_resident_home + S_resident_away)/pop, by = c("time" , "patch" , "time")]
+dt.baseline[, i := (I_resident_home + I_resident_away)/pop, by = c("time" , "patch" , "time")]
+dt.baseline[, p := (P_resident_home + P_resident_away)/pop, by = c("time" , "patch" , "time")]
+tail(dt.baseline[areaId == 335] )
+
+
+tail(dt[areaId == 335] )
