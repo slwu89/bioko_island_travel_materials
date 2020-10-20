@@ -1,7 +1,7 @@
 ---
-title: "ASTMH plots"
+title: "Plots for PNAS paper"
 author: "Daniel T. Citron"
-date: "11/3/2019"
+date: "10/19/2020"
 output: html_document
 ---
 
@@ -78,10 +78,10 @@ pop.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 pop.plot
 
-ggsave(here("data/ASTMH/figures/population_map.pdf"),
-       plot = pop.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("data/figures/population_map.pdf"),
+#        plot = pop.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 
@@ -108,10 +108,10 @@ pfpr.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 pfpr.plot
 
-ggsave(here("data/ASTMH/figures/pfpr_map.pdf"),
-       plot = pfpr.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("data/figures/pfpr_map.pdf"),
+#        plot = pfpr.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 # PfPR, conditioning on travel
@@ -141,15 +141,15 @@ pfpr.trav.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 pfpr.trav.plot
 
-ggsave(here("data/ASTMH/figures/pfpr_travel_map.pdf"),
-       plot = pfpr.trav.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("data/figures/pfpr_travel_map.pdf"),
+#        plot = pfpr.trav.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 # Mapping travel fraction
 ```{r}
-baseline.means <- fread(here("data/ASTMH/data/baseline_pr_means.csv"))
+baseline.means <- fread(here("data/baseline_pr_means.csv"))
 travelfrac.means <- fread(here("data/ASTMH/data/travelfrac_pr_means.csv"))
 
 tf.dat <- merge(baseline.means[,.(areaId, time, i.base = i)], 
@@ -187,10 +187,10 @@ travel.fraction.plot <- ggplot() +
 travel.fraction.plot
 
 
-ggsave(here("data/ASTMH/figures/travel_fraction_map.pdf"),
-       plot = travel.fraction.plot,
-       width = 6, height = 6, units = "in"
-      )      
+# ggsave(here("data/ASTMH/figures/travel_fraction_map.pdf"),
+#        plot = travel.fraction.plot,
+#        width = 6, height = 6, units = "in"
+#       )      
 ```
 
 # Local Residual Fraction of Transmission
@@ -233,10 +233,10 @@ local.resid.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 local.resid.plot
 
-ggsave(here("data/ASTMH/figures/local_resid_map.pdf"),
-       plot = local.resid.plot,
-       width = 6, height = 6, units = "in"
-      )      
+# ggsave(here("data/ASTMH/figures/local_resid_map.pdf"),
+#        plot = local.resid.plot,
+#        width = 6, height = 6, units = "in"
+#       )      
 ```
 
 # RDT collection map:
@@ -291,10 +291,10 @@ rdt.plot <- ggplot() +
 rdt.plot
 
 
-ggsave(here("data/ASTMH/figures/rdt_map.pdf"),
-       plot = rdt.plot,
-       width = 6, height = 6, units = "in"
-      )      
+# ggsave(here("data/ASTMH/figures/rdt_map.pdf"),
+#        plot = rdt.plot,
+#        width = 6, height = 6, units = "in"
+#       )      
 ```
 
 
@@ -330,10 +330,10 @@ coverage.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 coverage.plot
 
-ggsave(here("data/ASTMH/figures/MIS_coverage_map.pdf"),
-       plot = coverage.plot,
-       width = 6, height = 6, units = "in"
-      )      
+# ggsave(here("data/ASTMH/figures/MIS_coverage_map.pdf"),
+#        plot = coverage.plot,
+#        width = 6, height = 6, units = "in"
+#       )      
 ```
 
 
@@ -539,6 +539,24 @@ vaccine.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
 vaccine.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
 ```
 
+# Travel Vaccine
+```{r Vaccine}
+vaccine.means <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means_1000.csv"))
+vaccine.sds <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds_1000.csv"))
+
+h <- melt(vaccine.means,
+          id.vars = c("time", "areaId"), 
+          measure.vars = c("s","i","p"),
+          value.name = "fraction")
+h.sd <- melt(vaccine.sds,
+             id.vars = c("time", "areaId"), 
+             measure.vars = c("s","i","p"),
+             value.name = "fraction.sd")
+trav.vacc.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+
+trav.vacc.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+```
+
 # Reduced importations
 ```{r Low importations}
 lowimport.means <- fread(here("data/ASTMH/data/lowimport_trueICs_pr_means_1000.csv"))
@@ -667,9 +685,9 @@ ggsave(here("data/ASTMH/figures/local_residual_timeseries_335.pdf"),
 local.resid.plot.335
 ```
 
-```{r Area 335 plots - Vaccines}
-vaccine.plot.335 <- ggplot(
-  data = vaccine.dat[areaId == 335 & variable == "i" & time > 365]) + 
+```{r Area 335 plots - Travel Vaccine}
+trav.vacc.plot.335 <- ggplot(
+  data = trav.vacc.dat[areaId == 335 & variable == "i" & time > 365]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -689,12 +707,12 @@ vaccine.plot.335 <- ggplot(
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
-vaccine.plot.335
+trav.vacc.plot.335
 
-ggsave(here("data/ASTMH/figures/vaccine_timeseries_335.pdf"),
-       plot = vaccine.plot.335,
-       width = 4, height = 3, units = "in"
-      )
+# ggsave(here("data/ASTMH/figures/vaccine_timeseries_335.pdf"),
+#        plot = vaccine.plot.335,
+#        width = 4, height = 3, units = "in"
+#       )
 ```
 
 # Plots for areaId 2694
@@ -814,6 +832,36 @@ ggsave(here("data/ASTMH/figures/vaccine_timeseries_2694.pdf"),
        width = 4, height = 3, units = "in"
       )
 ```
+
+```{r Area 2694 plots - Travel Vaccine}
+trav.vacc.plot.2694 <- ggplot(
+  data = vaccine.dat[areaId == 2694 & variable == "i"]) + 
+  geom_errorbar(mapping = aes(x = time, 
+                              ymin = lower.bound,
+                              ymax = fraction + fraction.sd), 
+                alpha = .5, color = "red") + 
+  scale_x_continuous(name = "Time (Years)", 
+                     breaks = c(365, 365*2, 365*3, 365*4, 365*5), labels = c(1:5),
+                     expand = c(0,0)) + 
+  scale_y_continuous(name = "Prevalence", 
+                     expand = c(0,0),
+                     limits = c(0,.31)) + #ylab("Prevalence") +
+  geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = .1) +
+  theme(panel.background = element_rect(fill = "white", colour = "white"),
+        axis.line = element_line(color = "black", size = 1),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 22),
+        panel.grid = element_line(color = NULL),
+        legend.position = c(.8, .8))
+
+trav.vacc.plot.2694
+
+# ggsave(here("data/ASTMH/figures/vaccine_timeseries_2694.pdf"),
+#        plot = vaccine.plot.2694,
+#        width = 4, height = 3, units = "in"
+#       )
+```
+
 
 # Code Graveyard
 

@@ -43,7 +43,7 @@ TreatPf = 0.602
 
 # Vaccination parameters
 PEProtectPf = 1 # probability that the vaccine will work in the person who receives it 
-peBlockPf = 1 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
+peBlockPf = .5 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
 mnPEPf = 300# duration of vaccine
 vrPEPf = 60 # variance in duration of vaccine
 
@@ -282,13 +282,3 @@ ggplot(data = h) +
   geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
   facet_wrap(~areaId)
 
-
-dt.baseline <- fread(here("data/simulation_outputs", paste0("pfsi_", 1, ".csv")))
-dt.baseline <- merge(dt.baseline, pop.dt, by = "patch")
-dt.baseline[, s := (S_resident_home + S_resident_away)/pop, by = c("time" , "patch" , "time")]
-dt.baseline[, i := (I_resident_home + I_resident_away)/pop, by = c("time" , "patch" , "time")]
-dt.baseline[, p := (P_resident_home + P_resident_away)/pop, by = c("time" , "patch" , "time")]
-tail(dt.baseline[areaId == 335] )
-
-
-tail(dt[areaId == 335] )
