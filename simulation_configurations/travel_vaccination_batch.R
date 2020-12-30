@@ -12,7 +12,7 @@ doParallel::registerDoParallel(cl)
 # Set up RNG
 parallel::clusterSetRNGStream(cl = cl,iseed = 186337428L)
 
-q <- foreach(run.index = 1:1000, .combine = "rbind",
+q <- foreach(run.index = 1:100, .combine = "rbind",
              .packages = c("data.table","Matrix", "MASS", "here", 
                            "Rcpp", "RcppArmadillo", "RcppProgress",
                            "macro.pfsi")
@@ -90,7 +90,7 @@ q <- foreach(run.index = 1:1000, .combine = "rbind",
   
   # Derive EIR ####
   # Set random seed for drawing the surface from the joint posterior distribution #
-  pfpr.draw.ix <- sample(1:100, 1)
+  pfpr.draw.ix <- sample(1:1000, 1)
   # Draw from PfPR surface
   pfpr.draw.colname = paste0("draw.", pfpr.draw.ix)
   pfpr.data.draw = pfpr.data[,c("areaId", pfpr.draw.colname), with = FALSE]
@@ -213,7 +213,7 @@ q <- foreach(run.index = 1:1000, .combine = "rbind",
   
   # Define Output Path Names #
   log_pars <- list()
-  h_inf <- here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_pfsi_", run.index, ".csv"))
+  h_inf <- here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_pfsi_", run.index, ".csv"))
   log_pars[[1]] <- list(outfile = h_inf, 
                         key = "pfsi",
                         header = paste0(c("time",
@@ -226,7 +226,7 @@ q <- foreach(run.index = 1:1000, .combine = "rbind",
                                         collapse = ",")
   )
   
-  mosy <-  here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_mosy_", run.index, ".csv"))
+  mosy <-  here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_mosy_", run.index, ".csv"))
   log_pars[[2]] <- list(outfile = mosy,
                         key = "mosquito",
                         header = paste0(c("time",
@@ -234,7 +234,7 @@ q <- foreach(run.index = 1:1000, .combine = "rbind",
                                           paste0("patch",1:n.patch)),
                                         collapse = ","))
   
-  vaxx <- here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_vaxx_", run.index, ".csv"))
+  vaxx <- here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_vaxx_", run.index, ".csv"))
   log_pars[[3]] <- list(outfile = vaxx,
                         key = "vaxx",
                         header = paste0(c("time", 

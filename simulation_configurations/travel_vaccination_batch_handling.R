@@ -4,6 +4,7 @@
 library(data.table)
 library(ggplot2)
 library(Matrix)
+library(here)
 
 pop.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
 areaId.list <- sort(pop.data[year == 2018]$areaId)
@@ -55,3 +56,18 @@ mat_sd[, 5:ncol(mat_curr)] <- sqrt(mat_sd[, 5:ncol(mat_curr)])
 
 fwrite(mat_mean, here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means_1000.csv"))
 fwrite(mat_sd, here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds_1000.csv"))
+
+
+## Vaccination counting:
+# ensemble.file.list <- list.files(path = here("data/simulation_outputs/travel_vaccination/"),
+#                                  pattern = "travel_vaccination_vaxx_[[:digit:]]+.csv")
+# df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[1]))
+# data_current <- df[,.("vaxx_events" = sum(vaxx_events), run.number = 1), by = "time"]
+# 
+# nrun = length(ensemble.file.list)
+# for (i in 2:nrun){
+#   df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[i]))
+#   data_current <- rbind(data_current, df[,.("vaxx_events" = sum(vaxx_events), run.number = i), by = "time"])
+# }
+# 
+# data_current[,sum(vaxx_events)/7, by = "run.number"]

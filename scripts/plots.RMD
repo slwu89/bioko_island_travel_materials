@@ -190,7 +190,7 @@ travel.fraction.plot
 # ggsave(here("data/ASTMH/figures/travel_fraction_map.pdf"),
 #        plot = travel.fraction.plot,
 #        width = 6, height = 6, units = "in"
-#       )      
+#       )
 ```
 
 # Local Residual Fraction of Transmission
@@ -504,8 +504,8 @@ The end of the maps
 First, load in all of the data
 # Baseline
 ```{r Baseline}
-baseline.means <- fread(here("data/ASTMH/data/baseline_pr_means_1000.csv"))
-baseline.sds <- fread(here("data/ASTMH/data/baseline_pr_sds_1000.csv"))
+baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means_1000.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds_1000.csv"))
 
 h <- melt(baseline.means,
           id.vars = c("time", "areaId"), 
@@ -523,8 +523,8 @@ baseline.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "
 
 # Vaccine
 ```{r Vaccine}
-vaccine.means <- fread(here("data/ASTMH/data/vaccine_pr_means_1000.csv"))
-vaccine.sds <- fread(here("data/ASTMH/data/vaccine_pr_sds_1000.csv"))
+vaccine.means <- fread(here("data/simulation_outputs/astmh_simulations/vaccine_pr_means_1000.csv"))
+vaccine.sds <- fread(here("data/simulation_outputs/astmh_simulations/vaccine_pr_sds_1000.csv"))
 
 h <- melt(vaccine.means,
           id.vars = c("time", "areaId"), 
@@ -540,7 +540,7 @@ vaccine.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "v
 ```
 
 # Travel Vaccine
-```{r Vaccine}
+```{r Travel Vaccine}
 vaccine.means <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means_1000.csv"))
 vaccine.sds <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds_1000.csv"))
 
@@ -559,8 +559,8 @@ trav.vacc.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", 
 
 # Reduced importations
 ```{r Low importations}
-lowimport.means <- fread(here("data/ASTMH/data/lowimport_trueICs_pr_means_1000.csv"))
-lowimport.sds <- fread(here("data/ASTMH/data/lowimport_trueICs_pr_sds_1000.csv"))
+lowimport.means <- fread(here("data/simulation_outputs/astmh_simulations/lowimport_trueICs_pr_means_1000.csv"))
+lowimport.sds <- fread(here("data/simulation_outputs/astmh_simulations/lowimport_trueICs_pr_sds_1000.csv"))
 
 h <- melt(lowimport.means,
           id.vars = c("time", "areaId"), 
@@ -687,13 +687,13 @@ local.resid.plot.335
 
 ```{r Area 335 plots - Travel Vaccine}
 trav.vacc.plot.335 <- ggplot(
-  data = trav.vacc.dat[areaId == 335 & variable == "i" & time > 365]) + 
+  data = trav.vacc.dat[areaId == 335 & variable == "i" & time < 6*365]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
                 alpha = .5, color = "red") + 
   scale_x_continuous(name = "Time (Years)", 
-                     breaks = c(365*2, 365*3, 365*4, 365*5, 365*6 ), labels = c(1:5),
+                     breaks = c(365, 365*2, 365*3, 365*4, 365*5), labels = c(1:5),
                      expand = c(0,0)) + 
   scale_y_continuous(name = "Prevalence", 
                      expand = c(0,0),
@@ -835,7 +835,7 @@ ggsave(here("data/ASTMH/figures/vaccine_timeseries_2694.pdf"),
 
 ```{r Area 2694 plots - Travel Vaccine}
 trav.vacc.plot.2694 <- ggplot(
-  data = vaccine.dat[areaId == 2694 & variable == "i"]) + 
+  data = trav.vacc.dat[areaId == 2694 & variable == "i"]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
