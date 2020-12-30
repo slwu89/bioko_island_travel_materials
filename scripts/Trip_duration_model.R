@@ -18,8 +18,8 @@ library(data.table)
 # Load the data:
 dat <- fread(here("data/clean/travel_duration_data.csv"))
 # split data into on-island and off-island
-eg.dat <- dat[destination == "on_island"]
-bi.dat <- dat[destination == "off_island" & !is.na(nights)]
+eg.dat <- dat[destination == "off_island"]
+bi.dat <- dat[destination == "on_island" & !is.na(nights)]
 
 # Fit to an exponential decay, using maximum likelihood:
 f <- optimise(f = function(l){

@@ -2,16 +2,17 @@
 library(foreach)
 library(parallel)
 library(doParallel)
+library(here)
 
 # Set up cores
-ncores <- 4
+ncores <- 8
 cl <- parallel::makeCluster(ncores)
 doParallel::registerDoParallel(cl)
 
 # Set up RNG
 parallel::clusterSetRNGStream(cl = cl,iseed = 186337428L)
 
-q <- foreach(run.index = 1:100, .combine = "rbind",
+q <- foreach(run.index = 1:1000, .combine = "rbind",
              .packages = c("data.table","Matrix", "MASS", "here", 
                            "Rcpp", "RcppArmadillo", "RcppProgress",
                            "macro.pfsi")
@@ -35,7 +36,7 @@ q <- foreach(run.index = 1:100, .combine = "rbind",
   
   # Vaccination parameters
   PEProtectPf = 1 # probability that the vaccine will work in the person who receives it 
-  peBlockPf = 1 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
+  peBlockPf = .5 # factor which represents the % decrease in the efficacy, ie b -> b*(1-peBlockPf)
   mnPEPf = 300# duration of vaccine
   vrPEPf = 60 # variance in duration of vaccine
   
@@ -212,7 +213,7 @@ q <- foreach(run.index = 1:100, .combine = "rbind",
   
   # Define Output Path Names #
   log_pars <- list()
-  h_inf <- here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_pfsi_", run.index, ".csv"))
+  h_inf <- here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_pfsi_", run.index, ".csv"))
   log_pars[[1]] <- list(outfile = h_inf, 
                         key = "pfsi",
                         header = paste0(c("time",
@@ -225,12 +226,20 @@ q <- foreach(run.index = 1:100, .combine = "rbind",
                                         collapse = ",")
   )
   
-  mosy <-  here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_mosy_", run.index, ".csv"))
+  mosy <-  here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_mosy_", run.index, ".csv"))
   log_pars[[2]] <- list(outfile = mosy,
                         key = "mosquito",
                         header = paste0(c("time",
                                           "state",
                                           paste0("patch",1:n.patch)),
+                                        collapse = ","))
+  
+  vaxx <- here("data/simulation_outputs/travel_vaccination_2", paste0("travel_vaccination_vaxx_", run.index, ".csv"))
+  log_pars[[3]] <- list(outfile = vaxx,
+                        key = "vaxx",
+                        header = paste0(c("time", 
+                                          "patch", 
+                                          "vaxx_events"),
                                         collapse = ","))
   
   # 
@@ -243,34 +252,35 @@ q <- foreach(run.index = 1:100, .combine = "rbind",
             vaxx_events = NULL,
             verbose = F)
   c(run.index)
-}
+             }
 
-q
-
-# Next thing to do: run 100 in parallel, see how long it takes
-
-h_inf <- here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_pfsi_", 4, ".csv"))
-dt <- fread(h_inf)
-
-# Create a new data table to merge onto the simulation output, to track population denominators over time
-areaId.list <- sort(pop.data[year == 2018]$areaId)
-pop.dt <- data.table(patch = c(0:(241-1)), areaId = areaId.list)
-pop.dt <- merge(pop.dt, pop.data[year == 2018, .(areaId, pop)], by = "areaId")
-# merge, to use the pop column as a denominator when calculating fractions susceptible, infected, protected
-dt <- merge(dt, pop.dt, by = "patch")
-dt[, s := (S_resident_home + S_resident_away)/pop, by = c("time" , "patch" , "time")]
-dt[, i := (I_resident_home + I_resident_away)/pop, by = c("time" , "patch" , "time")]
-dt[, p := (P_resident_home + P_resident_away)/pop, by = c("time" , "patch" , "time")]
-
-h <- melt(dt[areaId %in%  c(152, 207, 220,335,502, 644, 1175,2199,2457)],
-          id.vars = c("time", "areaId"),
-          measure.vars = c("s","i","p"),
-          value.name = "fraction")
-
-# Create a plot
-ggplot(data = h) +
-  geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
-  facet_wrap(~areaId)
+# 
+# library(data.table)
+# library(ggplot2)
+# 
+# h_inf <- here("data/simulation_outputs/travel_vaccination", paste0("travel_vaccination_pfsi_", 4, ".csv"))
+# dt <- fread(h_inf)
+# 
+# # Create a new data table to merge onto the simulation output, to track population denominators over time
+# pop.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
+# areaId.list <- sort(pop.data[year == 2018]$areaId)
+# pop.dt <- data.table(patch = c(0:(241-1)), areaId = areaId.list)
+# pop.dt <- merge(pop.dt, pop.data[year == 2018, .(areaId, pop)], by = "areaId")
+# # merge, to use the pop column as a denominator when calculating fractions susceptible, infected, protected
+# dt <- merge(dt, pop.dt, by = "patch")
+# dt[, s := (S_resident_home + S_resident_away)/pop, by = c("time" , "patch" , "time")]
+# dt[, i := (I_resident_home + I_resident_away)/pop, by = c("time" , "patch" , "time")]
+# dt[, p := (P_resident_home + P_resident_away)/pop, by = c("time" , "patch" , "time")]
+# 
+# h <- melt(dt[areaId %in%  c(152, 207, 220,335,502, 644, 1175,2199,2457)],
+#           id.vars = c("time", "areaId"),
+#           measure.vars = c("s","i","p"),
+#           value.name = "fraction")
+# 
+# # Create a plot
+# ggplot(data = h) +
+#   geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
+#   facet_wrap(~areaId)
 
 
 

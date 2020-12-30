@@ -5,7 +5,7 @@ This repository contains the code and documentation which support the data analy
 The supporting data which accompanies this code may be found *here*. *Need appropriate citations*
 
   * `aggregated_2015_2018_travel_data.csv` — contains population census data; trips recorded between 2015-2018 from the BIMEP MIS
-  * `trip_duration_data.csv` — contains data describing the duration of trips to different destinations from the 2018 BIMEP MIS
+  * `travel_duration_data.csv` — contains data describing the duration of trips to different destinations from the 2018 BIMEP MIS
   * `travel_dist_by_region.csv` — contains distances between each areaId and the centroid of each destination region
   * `PfPR_draws.csv` — Draws from the joint posterior surface of malaria prevalence estimates *Need appropriate citations*
   * `data/clean/negative_binomial_predictions_by_destination_region.csv` — Trip destination model results

@@ -236,6 +236,14 @@ log_pars[[2]] <- list(outfile = mosy,
                                         paste0("patch",1:n.patch)),
                                       collapse = ","))
 
+vaxx <- here("data/simulation_outputs", paste0("travel_fraction_vaxx_", 1, ".csv"))
+log_pars[[3]] <- list(outfile = vaxx,
+                      key = "vaxx",
+                      header = paste0(c("time", 
+                                        "patch", 
+                                        "vaxx_events"),
+                                      collapse = ","))
+
 # Set random seed
 set.seed(1)
 # 
