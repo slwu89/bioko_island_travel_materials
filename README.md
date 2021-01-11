@@ -18,10 +18,12 @@ The R code inside the **scripts** folder is used to preprocess and analyze the d
   * `Trip_duration_model.R` — Fits an exponential model to the time spent away
   * `region_to_areaId_mapping.R` — A script for disaggregating trips to regions into trips to specific map-areas within each region. We assume that the probability of visiting each map-area is proportional to population.
 
-The R code insde the **simulation_configurations** folder serves as example code which maybe used to generate and plot the results from a single simulation run for each of the different scenarios discussed in the article. The software we use to build and run the simulations is called `macro.pfsi`, and is available as a package through GitHub, with instructions for how to install [here](https://github.com/dd-harp/MASH).
+The R code insde the **simulation_configurations** folder serves as example code which maybe used to generate and plot the results from a single simulation run for each of the different scenarios discussed in the article. The software we use to build and run the simulations is called `macro.pfsi`, and is bundled as an R package in the directory **macro.pfsi** and as a compiled binary `macro.pfsi_1.0.tar.gz`.
 
   * `baseline_simulation_configuration.R` — Baseline case, assuming that conditions do not change on Bioko Island
   * `local_residual_configuration.R` — Estimating the local residual fraction, the fraction of cases that are attributable to on-island local transmission only, by reducing the force of infection on the mainland to zero.
   * `travel_fraction_configuration.R` — Estimating the fraction of PfPR which is attributable to travel, by reducing the on-island local transmission to zero.
   * `vaccination_configuration.R` — Estimating the long-term impact of a vaccine on malaria prevalence
   * `travel_vaccination_configuration.R` — Estimating the impact of vaccinating and treating travelers to the mainland.
+  
+To install the `macro.pfsi` software, the easiest method is to use a terminal to navigate to the directory containing `macro.pfsi_1.0.tar.gz` and call `R CMD INSTALL macro.pfsi_1.0.tar.gz`. If you are on Windows you may need to first install [Rtools](https://cran.r-project.org/bin/windows/Rtools/), which provides support for packages with compiled code. More information is available at the [offical R documentation](https://cran.r-project.org/doc/manuals/r-devel/R-admin.html#Installing-packages). To install from source, you may open the .Rproj file within the **macro.pfsi** directory with RStudio and use the "Build and Reload" command. For more information, see the [RStudio documentation](https://support.rstudio.com/hc/en-us/articles/200486508-Building-Testing-and-Distributing-Packages).
