@@ -22,7 +22,7 @@ library(Rcpp)
 library(RcppArmadillo)
 library(RcppProgress)
 # If not installed:
-#devtools::install_github(repo = "https://github.com/dd-harp/MASH",subdir = "macro.pfsi")
+#devtools::install_github(repo = "https://github.com/dtcitron/bioko_island_travel_materials",subdir = "macro.pfsi")
 library(macro.pfsi)
 
 # Load Data and Set Parameter Values ####
