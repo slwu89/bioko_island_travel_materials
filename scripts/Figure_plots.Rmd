@@ -627,9 +627,52 @@ ggsave(here("Figures/timeseries_lowimport_2694.pdf"),
       )
 ```
 
+# Figure 5 - Travel frequency map
+```{r Travel frequency map}
 
-# Figure
-Travel data plots - histograms of travel duration
+trip.freq.data <- fread(here("data/clean/trip_frequency_model_estimates.csv"))
+
+areas.inh <- merge(bi.centroids, trip.freq.data[year == 2018, .(areaId, draw.mean)], 
+                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+
+example.plot <- ggplot()  +
+  geom_polygon(data = bi.outline, aes(x = long, y = lat, group = group), 
+               color = "black", fill="grey", size = 0.4) + 
+    geom_path(data = ad2, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) +
+    geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) + 
+  geom_point(data = data.frame(areas.inh),
+             mapping = aes(x = coords.x1, y = coords.x2, color = draw.mean), 
+             shape = 15, size = 2.1) + 
+  scale_color_gradient(name = "Travel Probability", low = "#FFFF00", high = "#FF0000") + 
+  #scale_color_gradient(name = "Population", low = "#FFFFFF", high = "#5519C4", 
+  #                     breaks = c(0,1,2,3,4), 
+  #                     labels = c(expression(1), 10, bquote(10^2), bquote(10^3), bquote(10^4))) +
+  #scale_color_viridis(name="Log(Population)", limits=c(0, 5), option="plasma") + # set scale bar parameters
+  # move the scale bar
+  coord_fixed() + # aspect ratio
+  theme(aspect.ratio = 1, 
+        panel.background = element_rect(fill = "white", colour = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.background = element_blank(),
+        legend.title = element_text(size = 22),
+        legend.text = element_text(size = 20),
+        legend.position = c(.2, .8),
+        legend.key.size = unit(.35,"inches"))
+example.plot
+
+ggsave(here("Figures/Figure_5_travel_frequency_raster.pdf"), 
+       plot = example.plot,
+       width = 6, height = 6, units = "in"
+      )
+
+```
+
+
+# Figure 6 -Travel data plots - histograms of travel duration
 
 
 
@@ -659,7 +702,7 @@ eg.trips.away <- ggplot() + geom_histogram(trip.dat[(destination == "off_island"
         axis.text = element_text(size = 18),
         axis.title = element_text(size = 24))
 eg.trips.away
-ggsave(here("Figures/Figure_2_trips_away.pdf"),
+ggsave(here("Figures/Figure_6_trips_away.pdf"),
        plot = eg.trips.away,
        width = 8, height = 6, units = "in"
       )
@@ -681,8 +724,9 @@ bi.trips.away <- ggplot() + geom_histogram(trip.dat[(destination == "on_island")
         axis.title = element_text(size = 24))
 bi.trips.away
 
-ggsave(here("Figures/Figure_2_bi_trips_away.pdf"),
+ggsave(here("Figures/Figure_6_bi_trips_away.pdf"),
        plot = bi.trips.away,
        width = 8, height = 6, units = "in"
       )
 ```
+
