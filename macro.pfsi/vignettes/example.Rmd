@@ -195,3 +195,9 @@ ggplot(pfsi_ensemble_pr,aes(x=time,y=value,color=key,fill=key)) +
   guides(color = FALSE) +
   theme_bw()
 ```
+
+```{r, echo=FALSE}
+# just for cleaning out the vignettes folder in the package
+unlink(x = path, recursive = TRUE)
+rm(list=ls())
+```

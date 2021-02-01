@@ -274,37 +274,44 @@ e_pfsi_endchx::e_pfsi_endchx(double tEvent_, human* h):
 e_pfsi_pevaxx::e_pfsi_pevaxx(double tEvent_, const bool treat, human* h):
   event("PfSI_PEVaxx",tEvent_,[tEvent_,treat,h](){
 
-    /* check if vaxx fails (vaxx efficacy) */
-    double PEProtectPf = h->get_tile()->get_params()->get_param("PEProtectPf");
-    if(R::runif(0.,1.) < PEProtectPf){
+    /* check that this individual is eligible for vaccination */
+    if( std::fabs(tEvent_ - h->get_tvaxx()) > h->get_tile()->get_params()->get_param("vaxxDelay")){
 
-      /* lower my probability to get infected by mosquitos */
-      double b =  h->get_tile()->get_params()->get_param("Pf_b");
-      double peBlockPf = h->get_tile()->get_params()->get_param("peBlockPf");
-      h->set_b(b * (1.0 - peBlockPf));
+      h->set_tvaxx(tEvent_);
+      
+      /* check if vaxx fails (vaxx efficacy) */
+      double PEProtectPf = h->get_tile()->get_params()->get_param("PEProtectPf");
+      if(R::runif(0.,1.) < PEProtectPf){
 
-      h->rmTagFromQ("PfSI_PEWane");
+        /* lower my probability to get infected by mosquitos */
+        double b =  h->get_tile()->get_params()->get_param("Pf_b");
+        double peBlockPf = h->get_tile()->get_params()->get_param("peBlockPf");
+        h->set_b(b * (1.0 - peBlockPf));
 
-      /* queue the vaxx wane event */
-      double tWane = tEvent_ + pfsi_ttPEWanePf(h);
-      h->addEvent2Q(e_pfsi_pewane(tWane,h));
+        h->rmTagFromQ("PfSI_PEWane");
+
+        /* queue the vaxx wane event */
+        double tWane = tEvent_ + pfsi_ttPEWanePf(h);
+        h->addEvent2Q(e_pfsi_pewane(tWane,h));
+      }
+
+      /* if treatment accompanies vaccination */
+      if(treat){
+
+        /* copied from e_pfsi_treatment */
+        h->set_state("P");
+        h->rmTagFromQ("PfSI_recovery");
+        h->rmTagFromQ("PfSI_endprophylaxis");
+
+        /* initiate a period of protection from chemoprophylaxis */
+        double tSusceptible = tEvent_ + pfsi_ttSusceptiblePf(h);
+        h->addEvent2Q(e_pfsi_endchx(tSusceptible,h));
+      }
+
+      /* log this event with our patch */
+      h->get_patch()->accumulate_vaxx();
+
     }
-
-    /* if treatment accompanies vaccination */
-    if(treat){
-
-      /* copied from e_pfsi_treatment */
-      h->set_state("P");
-      h->rmTagFromQ("PfSI_recovery");
-      h->rmTagFromQ("PfSI_endprophylaxis");
-
-      /* initiate a period of protection from chemoprophylaxis */
-      double tSusceptible = tEvent_ + pfsi_ttSusceptiblePf(h);
-      h->addEvent2Q(e_pfsi_endchx(tSusceptible,h));
-    }
-
-    /* log this event with our patch */
-    h->get_patch()->accumulate_vaxx();
 
   })
 {

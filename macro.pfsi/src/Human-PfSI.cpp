@@ -46,7 +46,7 @@ human::human(/* basic values */
   patch_id(home_patch_id_), home_patch_id(home_patch_id_), travel(false),
   trip_duration(trip_duration_), trip_frequency(trip_frequency_),
   bweight(bweight_), tileP(tileP_),
-  state(state_), b(0.), c(0.), age(age_), kappa(0.), EIR(0.)
+  state(state_), b(0.), c(0.), age(age_), kappa(0.), EIR(0.), tvaxx(-1E10)
 {};
 
 // destructor

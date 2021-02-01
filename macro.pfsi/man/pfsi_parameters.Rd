@@ -24,7 +24,8 @@ pfsi_parameters(
   mnGSPf = 180,
   vrGSPf = 20,
   travel_vaxx = FALSE,
-  travel_treat = FALSE
+  travel_treat = FALSE,
+  vaxxDelay = 180
 )
 }
 \arguments{
@@ -67,6 +68,8 @@ pfsi_parameters(
 \item{travel_vaxx}{when someone goes to a reservoir patch, do they get vaccinated immediately before?}
 
 \item{travel_treat}{when someone goes to a reservoir patch, do they get treated immediately before? (is conditional on vaccination)}
+
+\item{vaxxDelay}{minimum allowed delay between consecutive vaccinations for an individual}
 }
 \description{
 Parameters for the 'PfSI' model of human infection dynamics

@@ -38,6 +38,7 @@
 #' @param vrGSPf standard deviation of protection from GS vaccination (Gaussian)
 #' @param travel_vaxx when someone goes to a reservoir patch, do they get vaccinated immediately before?
 #' @param travel_treat when someone goes to a reservoir patch, do they get treated immediately before? (is conditional on vaccination)
+#' @param vaxxDelay minimum allowed delay between consecutive vaccinations for an individual
 #'
 #' @export
 pfsi_parameters <- function(
@@ -60,7 +61,8 @@ pfsi_parameters <- function(
     mnGSPf = 180,
     vrGSPf = 20,
     travel_vaxx = FALSE,
-    travel_treat = FALSE
+    travel_treat = FALSE,
+    vaxxDelay = 180
   ){
   list(
     Pf_c = as.numeric(Pf_c),
@@ -82,6 +84,7 @@ pfsi_parameters <- function(
     mnGSPf = as.numeric(mnGSPf),
     vrGSPf = as.numeric(vrGSPf),
     travel_vaxx = as.logical(travel_vaxx),
-    travel_treat = as.logical(travel_treat)
+    travel_treat = as.logical(travel_treat),
+    vaxxDelay = as.numeric(vaxxDelay)
   )
 }
