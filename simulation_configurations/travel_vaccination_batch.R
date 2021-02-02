@@ -12,7 +12,7 @@ doParallel::registerDoParallel(cl)
 # Set up RNG
 parallel::clusterSetRNGStream(cl = cl,iseed = 186337428L)
 
-q <- foreach(run.index = 1:100, .combine = "rbind",
+q <- foreach(run.index = 1:1000, .combine = "rbind",
              .packages = c("data.table","Matrix", "MASS", "here", 
                            "Rcpp", "RcppArmadillo", "RcppProgress",
                            "macro.pfsi")

@@ -22,7 +22,7 @@ library(Rcpp)
 library(RcppArmadillo)
 library(RcppProgress)
 # If not installed:
-#devtools::install_github(repo = "https://github.com/dtcitron/bioko_island_travel_materials",subdir = "macro.pfsi"))
+#devtools::install_github(repo = "https://github.com/dtcitron/bioko_island_travel_materials",subdir = "macro.pfsi")
 library(macro.pfsi)
 
 # Load Data and Set Parameter Values ####
@@ -142,6 +142,7 @@ pfsi_pars <- pfsi_parameters(FeverPf = 0.1116336, TreatPf = 0.602,
                              PEProtectPf = PEProtectPf,
                              peBlockPf = peBlockPf,
                              mnPEPf = mnPEPf, vrPEPf = vrPEPf,
+                             vaxxDelay = 365, # wait 365 days between vaccinations
                              travel_vaxx = TRUE, # vaccinate people as they travel
                              travel_treat = TRUE) # treat people as they travel
 
@@ -254,7 +255,7 @@ log_pars[[3]] <- list(outfile = vaxx,
 # Set random seed
 set.seed(1)
 # 
-run_macro(tmax = 365,
+run_macro(tmax = 365*2,
           human_pars = human_pars,
           mosquito_pars = mosy_pars,
           patch_pars = patch_pars,
@@ -290,3 +291,6 @@ ggplot(data = h) +
   geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
   facet_wrap(~areaId)
 
+# Count the number of vaccinations
+vaxx_events <- fread(here("data/simulation_outputs", paste0("travel_vaccination_vaxx_1.csv")))
+sum(vaxx_events$vaxx_events)/2

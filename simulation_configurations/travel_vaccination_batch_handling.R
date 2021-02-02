@@ -58,16 +58,55 @@ fwrite(mat_mean, here("data/simulation_outputs/travel_vaccination/travel_vaccine
 fwrite(mat_sd, here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds_1000.csv"))
 
 
+
+
+h <- melt(mat_mean,
+          id.vars = c("time", "areaId"), 
+          measure.vars = c("s","i","p"),
+          value.name = "fraction")
+h.sd <- melt(mat_sd,
+             id.vars = c("time", "areaId"), 
+             measure.vars = c("s","i","p"),
+             value.name = "fraction.sd")
+trav.vacc.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+
+trav.vacc.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+
+
+
+trav.vacc.plot.335 <- ggplot(
+  data = trav.vacc.dat[areaId == 335 & variable == "i" & time < 6*365]) + 
+  geom_errorbar(mapping = aes(x = time, 
+                              ymin = lower.bound,
+                              ymax = fraction + fraction.sd), 
+                alpha = .5, color = "red") + 
+  scale_x_continuous(name = "Time (Years)", 
+                     breaks = c(365, 365*2, 365*3, 365*4, 365*5), labels = c(1:5),
+                     expand = c(0,0)) + 
+  scale_y_continuous(name = "Prevalence", 
+                     expand = c(0,0),
+                     limits = c(0,.105),
+                     breaks = c(0,.05,.1)) + #ylab("Prevalence") +
+  geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
+  theme(panel.background = element_rect(fill = "white", colour = "white"),
+        axis.line = element_line(color = "black", size = 1),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 22),
+        panel.grid = element_line(color = NULL),
+        legend.position = c(.8, .8))
+
+trav.vacc.plot.335
+
 ## Vaccination counting:
-# ensemble.file.list <- list.files(path = here("data/simulation_outputs/travel_vaccination/"),
-#                                  pattern = "travel_vaccination_vaxx_[[:digit:]]+.csv")
-# df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[1]))
-# data_current <- df[,.("vaxx_events" = sum(vaxx_events), run.number = 1), by = "time"]
-# 
-# nrun = length(ensemble.file.list)
-# for (i in 2:nrun){
-#   df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[i]))
-#   data_current <- rbind(data_current, df[,.("vaxx_events" = sum(vaxx_events), run.number = i), by = "time"])
-# }
-# 
-# data_current[,sum(vaxx_events)/7, by = "run.number"]
+ensemble.file.list <- list.files(path = here("data/simulation_outputs/travel_vaccination/"),
+                                 pattern = "travel_vaccination_vaxx_[[:digit:]]+.csv")
+df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[1]))
+data_current <- df[,.("vaxx_events" = sum(vaxx_events), run.number = 1), by = "time"]
+
+nrun = length(ensemble.file.list)
+for (i in 2:nrun){
+  df <- fread(here("data/simulation_outputs/travel_vaccination/",ensemble.file.list[i]))
+  data_current <- rbind(data_current, df[,.("vaxx_events" = sum(vaxx_events), run.number = i), by = "time"])
+}
+
+data_current[,sum(vaxx_events)/7, by = "run.number"]
