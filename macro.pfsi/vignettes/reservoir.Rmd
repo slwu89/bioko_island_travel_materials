@@ -173,8 +173,8 @@ ggplot(pfsi_pr) +
   theme_bw()
 ```
 
-# ```{r, echo=FALSE}
-# # just for cleaning out the vignettes folder in the package
-# unlink(x = path, recursive = TRUE)
-# rm(list=ls())
-# ```
+```{r, echo=FALSE}
+# just for cleaning out the vignettes folder in the package
+unlink(x = path, recursive = TRUE)
+rm(list=ls())
+```

@@ -111,6 +111,9 @@ public:
   void                  set_c(const double c_){ c = c_; }
   double                get_c(){ return c; }
 
+  void                  set_tvaxx(const double tvaxx_){ tvaxx = tvaxx_; }
+  double                get_tvaxx(){ return tvaxx; }
+
   // PfSI logging
   void                  log_pfsi();
 
@@ -149,6 +152,8 @@ private:
 
   double                kappa; /* unnormalized kappa for an individual */
   double                EIR; /* individual level entomological inoculation rate */
+
+  double                tvaxx; /* time of last vaccination */
 
 };
 
