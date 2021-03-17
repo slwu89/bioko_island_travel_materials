@@ -7,8 +7,8 @@ The supporting data which accompanies this code may be found *here*. *Need appro
 * `aggregated_2015_2018_travel_data.csv` — contains population census data; trips recorded between 2015-2018 from the BIMEP MIS
 * `travel_duration_data.csv` — contains data describing the duration of trips to different destinations from the 2018 BIMEP MIS
 * `travel_dist_by_region.csv` — contains distances between each areaId and the centroid of each destination region
-* `PfPR_draws.csv` — Draws from the joint posterior surface of malaria prevalence estimates *Need appropriate citations*
-* `data/clean/negative_binomial_predictions_by_destination_region.csv` — Trip destination model results
+* `pfpr_draws.csv` — Draws from the joint posterior surface of malaria prevalence estimates (With permission, from [Guerra et al (2009)](https://www.nature.com/articles/s41467-019-10339-1)
+* `negative_binomial_predictions_by_destination_region.csv` — Trip destination model results
 * `trip_frequency_model_estimates.csv` — Frequency of travel model results
 
 The R code inside the **scripts** folder is used to preprocess and analyze the data.

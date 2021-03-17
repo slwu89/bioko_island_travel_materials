@@ -59,10 +59,10 @@ admin_map <- p2 +
   axis.ticks = element_blank(),
   legend.position = "none")
 
-ggsave(here("Figures/Figure_1a_admin_outlines.pdf"), 
-       plot = admin_map,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_1a_admin_outlines.pdf"), 
+#        plot = admin_map,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 # Figure 1b: population map
@@ -102,10 +102,10 @@ example.plot <- ggplot()  +
         legend.key.size = unit(.35,"inches"))
 example.plot
 
-ggsave(here("Figures/Figure_1b_population_raster.pdf"), 
-       plot = example.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_1b_population_raster.pdf"), 
+#        plot = example.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 
 ```
 
@@ -164,10 +164,10 @@ rdt.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 rdt.plot
 
-ggsave(here("Figures/Figure_1c_rdt_raster.pdf"), 
-       plot = rdt.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_1c_rdt_raster.pdf"), 
+#        plot = rdt.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 
 ```
 
@@ -210,10 +210,10 @@ pfpr.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 pfpr.plot
 
-ggsave(here("Figures/Figure_1d_pfpr_raster.pdf"), 
-       plot = pfpr.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_1d_pfpr_raster.pdf"), 
+#        plot = pfpr.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 # Figure 3 - Travel Cases and Local Cases
@@ -263,8 +263,62 @@ travel.fraction.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 travel.fraction.plot
 
-ggsave(here("Figures/Figure_3a_travel_fraction.pdf"), 
-       plot = travel.fraction.plot,
+# ggsave(here("Figures/Figure_3a_travel_fraction.pdf"), 
+#        plot = travel.fraction.plot,
+#        width = 6, height = 6, units = "in"
+#       )
+```
+
+
+```{r Travel Fraction Error bars}
+baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds.csv"))
+travelfrac.means <- fread(here("data/simulation_outputs/astmh_simulations/travelfrac_pr_means.csv"))
+travelfrac.sds <- fread(here("data/simulation_outputs/astmh_simulations/travelfrac_pr_sds.csv"))
+
+tf.dat <- merge(travelfrac.means[,.(areaId, time, tf.mean = i)],
+                travelfrac.sds[,.(areaId, time, tf.sd = i)],
+                by = c("areaId", "time"))
+
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
+                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- as.data.table(areas.inh)
+areas.inh[, travel.fraction := NULL]
+areas.inh <- merge(areas.inh,
+                   tf.dat[time > 1000, .(tf.sd.ratio = mean(tf.sd)/mean(tf.mean)), by = "areaId"],
+                   by.x = "OBJECTID", by.y = "areaId")
+areas.inh[, tf.sd.ratio := min(tf.sd.ratio, 2), by = "OBJECTID"]
+
+# Make the map
+travel.fraction.errors.plot <- ggplot() + 
+  geom_polygon(data = bi.outline, aes(x = long, y = lat, group = group), color = "black", fill="grey", size = 0.4) + 
+    geom_path(data = ad2, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) +
+    geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) + 
+  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = tf.sd.ratio), 
+             shape = 15, size = 2.1) + 
+  # scale_color_viridis(name="Travel Fraction", option="cividis") +
+  scale_color_viridis(name="Travel Fraction\nUncertainty",
+                      option="cividis", limits=c(0, 2),
+                      breaks = c(0,.5,1,1.5,2),
+                      labels = c("0", "0.5", "1", "1.5", bquote(">= 2"))) +
+  # move the scale bar
+  coord_fixed() + # aspect ratio
+  theme(aspect.ratio = 1,
+        panel.background = element_rect(fill = "white", colour = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.background = element_blank(),
+        legend.title = element_text(size = 22),
+        legend.text = element_text(size = 20),
+        legend.position = c(.25, .8),
+        legend.key.size = unit(.35,"inches"))
+travel.fraction.errors.plot
+
+ggsave(here("Figures/Figure_3c_travel_fraction_variance.pdf"),
+       plot = travel.fraction.errors.plot,
        width = 6, height = 6, units = "in"
       )
 ```
@@ -318,6 +372,64 @@ ggsave(here("Figures/Figure_3b_local_residual_fraction.pdf"),
       )
 ```
 
+
+
+```{r Local Residual Fraction Error bars}
+baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds.csv"))
+localresid.means <- fread(here("data/simulation_outputs/astmh_simulations/localresid_pr_means.csv"))
+localresid.sds <- fread(here("data/simulation_outputs/astmh_simulations/localresid_pr_sds.csv"))
+
+lr.dat <- merge(localresid.means[,.(areaId, time, lr.mean = i)],
+                localresid.sds[,.(areaId, time, lr.sd = i)],
+                by = c("areaId", "time"))
+
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
+                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- as.data.table(areas.inh)
+areas.inh[, lr := NULL]
+areas.inh <- merge(areas.inh,
+                   lr.dat[time > 1000, .(lr.sd.ratio = mean(lr.sd)/mean(lr.mean)), by = "areaId"],
+                   by.x = "OBJECTID", by.y = "areaId")
+# I checked: this area has zero prevalence in the sims, and pop=1
+areas.inh[OBJECTID==619]$lr.sd.ratio <- 2
+areas.inh[, lr.sd.ratio := min(lr.sd.ratio, 2), by = "OBJECTID"]
+
+
+# Make the map
+lr.errors.plot <- ggplot() + 
+  geom_polygon(data = bi.outline, aes(x = long, y = lat, group = group), color = "black", fill="grey", size = 0.4) + 
+    geom_path(data = ad2, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) +
+    geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
+              color = "black", size = 0.4) + 
+  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = lr.sd.ratio), 
+             shape = 15, size = 2.1) + 
+  #scale_color_viridis(name="Local Residual", option="cividis") +
+  scale_color_viridis(name="Local Residual Fraction\nUncertainty",
+                      option = "plasma", limits=c(0, 2),
+                      breaks = c(0, .5, 1, 1.5, 2),
+                      labels = c("0", "0.5", "1", "1.5", bquote(">= 2"))) +
+  # move the scale bar
+  coord_fixed() + # aspect ratio
+  theme(aspect.ratio = 1,
+        panel.background = element_rect(fill = "white", colour = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.background = element_blank(),
+        legend.title = element_text(size = 22),
+        legend.text = element_text(size = 20),
+        legend.position = c(.25, .8),
+        legend.key.size = unit(.35,"inches"))
+lr.errors.plot
+
+ggsave(here("Figures/Figure_3d_local_residual_fraction_variance.pdf"),
+       plot = lr.errors.plot,
+       width = 6, height = 6, units = "in"
+      )
+```
+
 # Figure 4 - Time Series
 
 ## Baseline time series
@@ -345,7 +457,7 @@ baseline.plot.335 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#EE0800") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365*3, 365*4, 365*5, 365*6 ), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -356,8 +468,8 @@ baseline.plot.335 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
@@ -375,7 +487,7 @@ baseline.plot.2694 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#CC006A") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365*3, 365*4, 365*5, 365*6 ), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -385,8 +497,8 @@ baseline.plot.2694 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 22),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 baseline.plot.2694
@@ -422,7 +534,7 @@ vaccine.plot.335 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#EE0800") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365*3, 365*4, 365*5, 365*6 ), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -433,8 +545,8 @@ vaccine.plot.335 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
@@ -452,7 +564,7 @@ vaccine.plot.2694 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#CC006A") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365*3, 365*4, 365*5, 365*6 ), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -462,8 +574,8 @@ vaccine.plot.2694 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 22),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 vaccine.plot.2694
@@ -477,8 +589,8 @@ ggsave(here("Figures/timeseries_vaccine_2694.pdf"),
 
 ## Travel vaccination time series
 ```{r Travel Vaccine}
-vaccine.means <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means_1000.csv"))
-vaccine.sds <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds_1000.csv"))
+vaccine.means <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means.csv"))
+vaccine.sds <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds.csv"))
 
 h <- melt(vaccine.means,
           id.vars = c("time", "areaId"), 
@@ -499,7 +611,7 @@ travel.vacc.plot.335 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#EE0800") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365, 365*2, 365*3, 365*4), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -510,8 +622,8 @@ travel.vacc.plot.335 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
@@ -529,7 +641,7 @@ travel.vacc.plot.2694 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#CC006A") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365, 365*2, 365*3, 365*4), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -539,8 +651,8 @@ travel.vacc.plot.2694 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 22),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 travel.vacc.plot.2694
@@ -575,7 +687,7 @@ lowimport.plot.335 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#EE0800") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365, 365*2, 365*3, 365*4), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -586,8 +698,8 @@ lowimport.plot.335 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
@@ -605,7 +717,7 @@ lowimport.plot.2694 <- ggplot(
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
-                alpha = .5, color = "red") + 
+                alpha = .5, color = "#CC006A") + 
   scale_x_continuous(name = "Time (Years)", 
                      breaks = c(365, 365*2, 365*3, 365*4), labels = c(1:4),
                      expand = c(0,0)) + 
@@ -615,8 +727,8 @@ lowimport.plot.2694 <- ggplot(
   geom_point(mapping = aes(x = time, y = fraction), color = "black", shape = 16, size = 1) +
   theme(panel.background = element_rect(fill = "white", colour = "white"),
         axis.line = element_line(color = "black", size = 1),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 22),
+        axis.text = element_text(size = 23),
+        axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 lowimport.plot.2694
