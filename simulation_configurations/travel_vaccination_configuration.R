@@ -49,7 +49,7 @@ vrPEPf = 60 # variance in duration of vaccine
 
 # PfPR data
 pfpr.data <- fread(here("data/clean/pfpr_draws.csv"))
-pfpr.data <- merge(pfpr.data, pop.data[year == 2018, .(areaId)], by = "areaId", all = FALSE)
+pfpr.data <- merge(pfpr.data, pop.data[year == 2018, .(map.area)], by = "map.area", all = FALSE)
 
 
 # Dynamical Model Parameters
@@ -68,10 +68,9 @@ rho = FeverPf*TreatPf # probability of clearing infection through treatment casc
 # Used for calibrating PfPR across the model
 #
 # get the region - to - pixel matrix
-source(here("scripts/region_to_areaId_mapping.R"))
+source(here("scripts/region_to_maparea_mapping.R"))
 # convert the trip.dest.data into a matrix
-tar.draw.ix = paste0("draw.","mean")
-trip.dest.mat <- as.matrix(trip.dest.data[year == 2018 & draw == tar.draw.ix, .(t_eg, ti_ban, ti_lub, ti_mal, ti_mok, ti_ria, ti_ure)])
+trip.dest.mat <- as.matrix(trip.dest.data[year == 2018, .(t_eg, ti_ban, ti_lub, ti_mal, ti_mok, ti_ria, ti_ure)])
 trip.dest.mat <- rbind(trip.dest.mat, matrix(c(1,0,0,0,0,0,0), ncol = 7))
 # take the matrix product of trip.dest.mat with the region-to-pixel matrix toget pixel-to-pixel:
 movement.matrix <- trip.dest.mat %*% reg.2.pixel
@@ -82,10 +81,9 @@ trip.duration <- c(rep(trip.duration.bi, 241), trip.duration.eg)
 # Frequencies at which people leave home
 # Divide by 56 days to transform the probability of leaving into 
 # the frequency of leaving during the 8-week study period
-freq.draw.ix = paste0("draw.","mean")
-trip.freq <- trip.freq.data[year == 2018, c("areaId", freq.draw.ix), with = FALSE]
+trip.freq <- trip.freq.data[year == 2018, c("map.area", "leave.prob"), with = FALSE]
 colnames(trip.freq)[2] <- "freq"
-trip.freq <- c(trip.freq[order(areaId)]$freq/56, 1)
+trip.freq <- c(trip.freq[order(map.area)]$freq/56, 1)
 
 # Build full Time Spent at Risk matrix
 TaR.matrix <- diag(1, nrow = 242, ncol = 242)
@@ -101,9 +99,9 @@ set.seed(1)
 pfpr.draw.ix <- sample(1:100, 1)
 # Draw from PfPR surface
 pfpr.draw.colname = paste0("draw.", pfpr.draw.ix)
-pfpr.data.draw = pfpr.data[,c("areaId", pfpr.draw.colname), with = FALSE]
+pfpr.data.draw = pfpr.data[,c("map.area", pfpr.draw.colname), with = FALSE]
 colnames(pfpr.data.draw)[2] = "pfpr"
-pop.data <- merge(pop.data[year == 2018], pfpr.data.draw, by = "areaId")
+pop.data <- merge(pop.data[year == 2018], pfpr.data.draw, by = "map.area")
 pfpr.input <- c(pop.data$pfpr, 0.43)
 
 # See Ruktanonchai et al. (2016) and Supplementary Information for derivation
@@ -272,24 +270,24 @@ h_inf <- here("data/simulation_outputs", paste0("travel_vaccination_pfsi_", 1, "
 dt <- fread(h_inf)
 
 # Create a new data table to merge onto the simulation output, to track population denominators over time
-areaId.list <- sort(pop.data[year == 2018]$areaId)
-pop.dt <- data.table(patch = c(0:(241-1)), areaId = areaId.list)
-pop.dt <- merge(pop.dt, pop.data[year == 2018, .(areaId, pop)], by = "areaId")
+map.area.list <- sort(pop.data[year == 2018]$map.area)
+pop.dt <- data.table(patch = c(0:(241-1)), map.area = map.area.list)
+pop.dt <- merge(pop.dt, pop.data[year == 2018, .(map.area, pop)], by = "map.area")
 # merge, to use the pop column as a denominator when calculating fractions susceptible, infected, protected
 dt <- merge(dt, pop.dt, by = "patch")
 dt[, s := (S_resident_home + S_resident_away)/pop, by = c("time" , "patch" , "time")]
 dt[, i := (I_resident_home + I_resident_away)/pop, by = c("time" , "patch" , "time")]
 dt[, p := (P_resident_home + P_resident_away)/pop, by = c("time" , "patch" , "time")]
 
-h <- melt(dt[areaId %in%  c(152, 207, 220,335,502, 644, 1175,2199,2457)],
-          id.vars = c("time", "areaId"),
+h <- melt(dt[map.area %in%  c(12, 14, 26, 73, 153, 244, 573, 1146, 1339)],
+          id.vars = c("time", "map.area"),
           measure.vars = c("s","i","p"),
           value.name = "fraction")
 
 # Create a plot
 ggplot(data = h) +
   geom_point(mapping = aes(x = time, y = fraction, color = variable), shape = 20, size = .01) +
-  facet_wrap(~areaId)
+  facet_wrap(~map.area)
 
 # Count the number of vaccinations
 vaxx_events <- fread(here("data/simulation_outputs", paste0("travel_vaccination_vaxx_1.csv")))
