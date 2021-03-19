@@ -41,8 +41,9 @@ ad2 <- subset(ad2, admin2 %in% c("Malabo", "Riaba", "Luba", "Baney"))
 ad4 <- raster::shapefile(here("data/clean/BI_maps/admin4shp/admin4V19.shp"))
 ad4.sub <- subset(ad4, admin4 %in% c("Ureka", "Moka Malabo"))
 
-# Load in Carlos's centroids
-bi.centroids <- raster::shapefile(here("data/raw/mapArea_centroids/mapareagrid_centroids.shp"))
+# Load in centroids
+bi.centroids <- fread(here("data/clean/pfpr_draws.csv"))
+bi.centroids <- bi.centroids[,c("map.area", "utm.x", "utm.y")]
 
 #plot(bi.outline)
 ```
@@ -70,8 +71,7 @@ admin_map <- p2 +
 ```{r Population raster}
 pop.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
 
-areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(map.area, ad2, pop)], by = "map.area", all = FALSE)
 
 # Look! It's a beautiful population plot!
 example.plot <- ggplot()  +
@@ -82,7 +82,7 @@ example.plot <- ggplot()  +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
   geom_point(data = data.frame(areas.inh),
-             mapping = aes(x = coords.x1, y = coords.x2, color = log10(pop)), 
+             mapping = aes(x = utm.x, y = utm.y, color = log10(pop)), 
              shape = 15, size = 2.1) + 
   scale_color_gradient(name = "Population", low = "#FFFFFF", high = "#5519C4", 
                        breaks = c(0,1,2,3,4), 
@@ -112,27 +112,13 @@ example.plot
 # Figure 1c: RDT results
 
 ```{r Survey coverage data}
-survey.2018 <- fread(here("data/raw/2018_travel_data/mis2018travel.csv"))
-survey.2018 <- dcast(survey.2018[,.(areaId, pf)], areaId ~ pf, value.var = "pf", fun.aggregate = length)
-survey.2018$n <- survey.2018$no + survey.2018$yes
-survey.2018[, pf := yes]
-
-survey.2015.2017 <- fread(here("data/raw/2015-2017_survey_data/summaries.csv"))
-
-survey.2015.2018 <- merge(survey.2015.2017[,.(areaId, n.2015.2017 = n, pf.2015.2017 = pf)], 
-                          survey.2018[,.(areaId, n.2018 = n, pf.2018 = pf)], 
-                          by = "areaId" , all = TRUE)
-
-survey.2015.2018[is.na(survey.2015.2018)] = 0
-survey.2015.2018[, n := n.2015.2017 + n.2018]
-survey.2015.2018[, pf := pf.2015.2017 + pf.2018]
-survey.2015.2018[, pr := pf/n]
+survey.2015.2018 <- fread(here("data/clean/survey_rdt_aggregated.csv"))
 ```
 
 ```{r RDT collection map}
 areas.inh <- merge(areas.inh,
-                   survey.2015.2018[,.(areaId, pr)],
-                   by.x = "OBJECTID", by.y = "areaId")
+                   survey.2015.2018[,.(map.area, pr)],
+                   by = "map.area")
 
 rdt.plot <- ggplot() + 
     geom_polygon(data = bi.outline, aes(x = long, y = lat, group = group), 
@@ -141,16 +127,13 @@ rdt.plot <- ggplot() +
               color = "black", size = 0.4) +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
-  geom_point(data = data.frame(areas.inh), mapping = aes(x = coords.x1, y = coords.x2, color = pr), 
+  geom_point(data = data.frame(areas.inh), mapping = aes(x = utm.x, y = utm.y, color = pr), 
              shape = 15, size = 2.1) + 
-  # scale_color_viridis(name="Travel Fraction", limits=c(0, 100), option="plasma") +
   scale_color_gradient(name="2015-2018\nRDT PfPR",
                       low="yellow", high="red",
                       limits=c(0, .50),
                       breaks = c(0,.25, .50),
                       na.value = "#606060") + #,
-                      #labels = c("0", "10", "20", "30", "40", ">=50")) +
-  # move the scale bar
   coord_fixed() + # aspect ratio
   theme(aspect.ratio = 1, 
         panel.background = element_rect(fill = "white", colour = "white"),
@@ -175,12 +158,12 @@ rdt.plot
 ```{r pfpr map}
 pfpr.data <- fread(here("data/clean/pfpr_draws.csv"))
 
-pfpr.data <- merge(pop.data[year == 2018,.(areaId, pop)],
-      pfpr.data[,.(areaId, pfpr = draw.mean)],
-      by = "areaId")
+pfpr.data <- merge(pop.data[year == 2018,.(map.area, pop)],
+      pfpr.data[,.(map.area, pfpr = draw.mean)],
+      by = "map.area")
 
 areas.inh <- merge(bi.centroids, pfpr.data, 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+                   by = "map.area", all = FALSE)
 
 
 pfpr.plot <- ggplot() + 
@@ -191,9 +174,8 @@ pfpr.plot <- ggplot() +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
   geom_point(data = data.frame(areas.inh), 
-             mapping = aes(x = coords.x1, y = coords.x2, color = pfpr), 
+             mapping = aes(x = utm.x, y = utm.y, color = pfpr), 
              shape = 15, size = 2.1) + 
-  #scale_color_gradient(name = "Population", low = "#FFFFFF", high = "#5519C4") +
   scale_color_gradient(name="Mean PfPR",
                       low="yellow", high="red", limits=c(0, .45)) +
   # move the scale bar
@@ -219,21 +201,21 @@ pfpr.plot
 # Figure 3 - Travel Cases and Local Cases
 
 ```{r Travel Fraction}
-baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
-travelfrac.means <- fread(here("data/simulation_outputs/astmh_simulations/travelfrac_pr_means.csv"))
+baseline.means <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_means.csv"))
+travelfrac.means <- fread(here("data/simulation_outputs/simulations_for_figures/travelfrac_pr_means.csv"))
 
-tf.dat <- merge(baseline.means[,.(areaId, time, i.base = i)], 
-                travelfrac.means[,.(areaId, time, i.trav = i)], 
-                by = c("areaId", "time"))
+tf.dat <- merge(baseline.means[,.(map.area, time, i.base = i)], 
+                travelfrac.means[,.(map.area, time, i.trav = i)], 
+                by = c("map.area", "time"))
 
-areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(map.area, ad2, pop)], 
+                   by = "map.area", all = FALSE)
 areas.inh <- as.data.table(areas.inh)
 areas.inh[, travel.fraction := NULL]
 areas.inh <- merge(areas.inh,
-                   tf.dat[time > 1000, .(travel.fraction = mean(i.trav)/mean(i.base)), by = "areaId"],
-                   by.x = "OBJECTID", by.y = "areaId")
-areas.inh[, travel.fraction := min(travel.fraction, .5), by = "OBJECTID"]
+                   tf.dat[time > 1000, .(travel.fraction = mean(i.trav)/mean(i.base)), by = "map.area"],
+                   by = "map.area")
+areas.inh[, travel.fraction := min(travel.fraction, .5), by = "map.area"]
 
 # Make the map
 travel.fraction.plot <- ggplot() + 
@@ -242,9 +224,8 @@ travel.fraction.plot <- ggplot() +
               color = "black", size = 0.4) +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
-  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = 100*travel.fraction), 
+  geom_point(data = areas.inh, mapping = aes(x = utm.x, y = utm.y, color = 100*travel.fraction), 
              shape = 15, size = 2.1) + 
-  #scale_color_viridis(name="Travel Fraction", limits=c(0, 100), option="cividis") + 
   scale_color_viridis(name="Travel Fraction (%)",
                       option="cividis", limits=c(0, 50),
                       breaks = c(0,10,20,30,40, 50),
@@ -271,23 +252,23 @@ travel.fraction.plot
 
 
 ```{r Travel Fraction Error bars}
-baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
-baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds.csv"))
-travelfrac.means <- fread(here("data/simulation_outputs/astmh_simulations/travelfrac_pr_means.csv"))
-travelfrac.sds <- fread(here("data/simulation_outputs/astmh_simulations/travelfrac_pr_sds.csv"))
+baseline.means <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_means.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_sds.csv"))
+travelfrac.means <- fread(here("data/simulation_outputs/simulations_for_figures/travelfrac_pr_means.csv"))
+travelfrac.sds <- fread(here("data/simulation_outputs/simulations_for_figures/travelfrac_pr_sds.csv"))
 
-tf.dat <- merge(travelfrac.means[,.(areaId, time, tf.mean = i)],
-                travelfrac.sds[,.(areaId, time, tf.sd = i)],
-                by = c("areaId", "time"))
+tf.dat <- merge(travelfrac.means[,.(map.area, time, tf.mean = i)],
+                travelfrac.sds[,.(map.area, time, tf.sd = i)],
+                by = c("map.area", "time"))
 
-areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(map.area, ad2, pop)], 
+                   by = "map.area", all = FALSE)
 areas.inh <- as.data.table(areas.inh)
 areas.inh[, travel.fraction := NULL]
 areas.inh <- merge(areas.inh,
-                   tf.dat[time > 1000, .(tf.sd.ratio = mean(tf.sd)/mean(tf.mean)), by = "areaId"],
-                   by.x = "OBJECTID", by.y = "areaId")
-areas.inh[, tf.sd.ratio := min(tf.sd.ratio, 2), by = "OBJECTID"]
+                   tf.dat[time > 1000, .(tf.sd.ratio = mean(tf.sd)/mean(tf.mean)), by = "map.area"],
+                   by = "map.area")
+areas.inh[, tf.sd.ratio := min(tf.sd.ratio, 2), by = "map.area"]
 
 # Make the map
 travel.fraction.errors.plot <- ggplot() + 
@@ -296,7 +277,7 @@ travel.fraction.errors.plot <- ggplot() +
               color = "black", size = 0.4) +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
-  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = tf.sd.ratio), 
+  geom_point(data = areas.inh, mapping = aes(x = utm.x, y = utm.y, color = tf.sd.ratio), 
              shape = 15, size = 2.1) + 
   # scale_color_viridis(name="Travel Fraction", option="cividis") +
   scale_color_viridis(name="Travel Fraction\nUncertainty",
@@ -317,26 +298,25 @@ travel.fraction.errors.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 travel.fraction.errors.plot
 
-ggsave(here("Figures/Figure_3c_travel_fraction_variance.pdf"),
-       plot = travel.fraction.errors.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_3c_travel_fraction_variance.pdf"),
+#        plot = travel.fraction.errors.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 
 ```{r Local Residual Fraction}
-baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
-localresid.means <- fread(here("data/simulation_outputs/astmh_simulations/localresid_pr_means.csv"))
+baseline.means <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_means.csv"))
+localresid.means <- fread(here("data/simulation_outputs/simulations_for_figures/localresid_pr_means.csv"))
 
-lr.dat <- merge(baseline.means[,.(areaId, time, i.base = i)], 
-                localresid.means[,.(areaId, time, i.lr = i)], 
-                by = c("areaId", "time"))
+lr.dat <- merge(baseline.means[,.(map.area, time, i.base = i)], 
+                localresid.means[,.(map.area, time, i.lr = i)], 
+                by = c("map.area", "time"))
 
 areas.inh[, local.resid := NULL]
 areas.inh <- merge(areas.inh,
-                   lr.dat[time > 1000, .(local.resid = mean(i.lr)/mean(i.base)), by = "areaId"],
-                   by.x = "OBJECTID", by.y = "areaId")
-#areas.inh[, local.resid := min(local.resid, .5), by = "OBJECTID"]
+                   lr.dat[time > 1000, .(local.resid = mean(i.lr)/mean(i.base)), by = "map.area"],
+                   by = "map.area")
 
 # Make the map
 local.resid.plot <- ggplot() + 
@@ -345,9 +325,8 @@ local.resid.plot <- ggplot() +
               color = "black", size = 0.4) +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
-  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = 100*local.resid), 
+  geom_point(data = areas.inh, mapping = aes(x = utm.x, y = utm.y, color = 100*local.resid), 
              shape = 15, size = 2.1) + 
-  # scale_color_viridis(name="Travel Fraction", limits=c(0, 100), option="cividis") +
   scale_color_viridis(name="Local Residual\nFraction (%)",
                       option = "plasma", limits=c(0, 100),
                       breaks = c(0, 25, 50, 75, 100) ,
@@ -366,10 +345,10 @@ local.resid.plot <- ggplot() +
         legend.key.size = unit(.35,"inches"))
 local.resid.plot
 
-ggsave(here("Figures/Figure_3b_local_residual_fraction.pdf"), 
-       plot = local.resid.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_3b_local_residual_fraction.pdf"), 
+#        plot = local.resid.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 
