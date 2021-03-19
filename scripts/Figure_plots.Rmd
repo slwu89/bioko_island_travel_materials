@@ -354,25 +354,25 @@ local.resid.plot
 
 
 ```{r Local Residual Fraction Error bars}
-baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means.csv"))
-baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds.csv"))
-localresid.means <- fread(here("data/simulation_outputs/astmh_simulations/localresid_pr_means.csv"))
-localresid.sds <- fread(here("data/simulation_outputs/astmh_simulations/localresid_pr_sds.csv"))
+baseline.means <- fread(here("data/simulation_outputs/simulation_for_figures/baseline_pr_means.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/simulation_for_figures/baseline_pr_sds.csv"))
+localresid.means <- fread(here("data/simulation_outputs/simulations_for_figures/localresid_pr_means.csv"))
+localresid.sds <- fread(here("data/simulation_outputs/simulations_for_figures/localresid_pr_sds.csv"))
 
-lr.dat <- merge(localresid.means[,.(areaId, time, lr.mean = i)],
-                localresid.sds[,.(areaId, time, lr.sd = i)],
-                by = c("areaId", "time"))
+lr.dat <- merge(localresid.means[,.(map.area, time, lr.mean = i)],
+                localresid.sds[,.(map.area, time, lr.sd = i)],
+                by = c("map.area", "time"))
 
-areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(areaId, ad2, pop)], 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- merge(bi.centroids, pop.data[year == 2018, .(map.area, ad2, pop)], 
+                   by = "map.area", all = FALSE)
 areas.inh <- as.data.table(areas.inh)
 areas.inh[, lr := NULL]
 areas.inh <- merge(areas.inh,
-                   lr.dat[time > 1000, .(lr.sd.ratio = mean(lr.sd)/mean(lr.mean)), by = "areaId"],
-                   by.x = "OBJECTID", by.y = "areaId")
+                   lr.dat[time > 1000, .(lr.sd.ratio = mean(lr.sd)/mean(lr.mean)), by = "map.area"],
+                   by = "map.area")
 # I checked: this area has zero prevalence in the sims, and pop=1
-areas.inh[OBJECTID==619]$lr.sd.ratio <- 2
-areas.inh[, lr.sd.ratio := min(lr.sd.ratio, 2), by = "OBJECTID"]
+areas.inh[map.area==219]$lr.sd.ratio <- 2
+areas.inh[, lr.sd.ratio := min(lr.sd.ratio, 2), by = "map.area"]
 
 
 # Make the map
@@ -382,7 +382,7 @@ lr.errors.plot <- ggplot() +
               color = "black", size = 0.4) +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
-  geom_point(data = areas.inh, mapping = aes(x = coords.x1, y = coords.x2, color = lr.sd.ratio), 
+  geom_point(data = areas.inh, mapping = aes(x = utm.x, y = utm.y, color = lr.sd.ratio), 
              shape = 15, size = 2.1) + 
   #scale_color_viridis(name="Local Residual", option="cividis") +
   scale_color_viridis(name="Local Residual Fraction\nUncertainty",
@@ -401,38 +401,39 @@ lr.errors.plot <- ggplot() +
         legend.text = element_text(size = 20),
         legend.position = c(.25, .8),
         legend.key.size = unit(.35,"inches"))
+
 lr.errors.plot
 
-ggsave(here("Figures/Figure_3d_local_residual_fraction_variance.pdf"),
-       plot = lr.errors.plot,
-       width = 6, height = 6, units = "in"
-      )
+# ggsave(here("Figures/Figure_3d_local_residual_fraction_variance.pdf"),
+#        plot = lr.errors.plot,
+#        width = 6, height = 6, units = "in"
+#       )
 ```
 
 # Figure 4 - Time Series
 
 ## Baseline time series
 ```{r Baseline}
-baseline.means <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_means_1000.csv"))
-baseline.sds <- fread(here("data/simulation_outputs/astmh_simulations/baseline_pr_sds_1000.csv"))
+baseline.means <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_means_time_series.csv"))
+baseline.sds <- fread(here("data/simulation_outputs/simulations_for_figures/baseline_pr_sds_time_series.csv"))
 
 h <- melt(baseline.means,
-          id.vars = c("time", "areaId"), 
+          id.vars = c("time", "map.area"), 
           measure.vars = c("s","i","p"),
           value.name = "fraction")
 h.sd <- melt(baseline.sds,
-             id.vars = c("time", "areaId"), 
+             id.vars = c("time", "map.area"), 
              measure.vars = c("s","i","p"),
              value.name = "fraction.sd")
-baseline.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+baseline.dat <- merge(h, h.sd, by = c("time", "map.area", "variable"))
 
-baseline.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+baseline.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("map.area", "variable", "time")]
 
 ```
 
-```{r Baseline Area 335}
-baseline.plot.335 <- ggplot(
-  data = baseline.dat[areaId == 335 & variable == "i" & time > 365*2]) + # time %in% seq(365, 2554, by = 14) # if we want to do biweekly PR reports
+```{r Baseline Area 73}
+baseline.plot.73 <- ggplot(
+  data = baseline.dat[map.area == 73 & variable == "i" & time > 365*2]) + # time %in% seq(365, 2554, by = 14) # if we want to do biweekly PR reports
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -452,17 +453,17 @@ baseline.plot.335 <- ggplot(
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
-baseline.plot.335
+baseline.plot.73
 
-ggsave(here("Figures/timeseries_baseline_335.pdf"),
-       plot = baseline.plot.335,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_baseline_73.pdf"),
+#        plot = baseline.plot.73,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
-```{r Baseline Area 2694}
-baseline.plot.2694 <- ggplot(
-  data = baseline.dat[areaId == 2694 & variable == "i" & time > 365*2]) + 
+```{r Baseline Area 1509}
+baseline.plot.1509 <- ggplot(
+  data = baseline.dat[map.area == 1509 & variable == "i" & time > 365*2]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -480,36 +481,36 @@ baseline.plot.2694 <- ggplot(
         axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
-baseline.plot.2694
+baseline.plot.1509
 
-ggsave(here("Figures/timeseries_baseline_2694.pdf"),
-       plot = baseline.plot.2694,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_baseline_1509.pdf"),
+#        plot = baseline.plot.1509,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
 
 ## Vaccination time series
 ```{r Vaccine}
-vaccine.means <- fread(here("data/simulation_outputs/astmh_simulations/vaccine_pr_means_1000.csv"))
-vaccine.sds <- fread(here("data/simulation_outputs/astmh_simulations/vaccine_pr_sds_1000.csv"))
+vaccine.means <- fread(here("data/simulation_outputs/simulations_for_figures/vaccine_pr_means_time_series.csv"))
+vaccine.sds <- fread(here("data/simulation_outputs/simulations_for_figures/vaccine_pr_sds_time_series.csv"))
 
 h <- melt(vaccine.means,
-          id.vars = c("time", "areaId"), 
+          id.vars = c("time", "map.area"), 
           measure.vars = c("s","i","p"),
           value.name = "fraction")
 h.sd <- melt(vaccine.sds,
-             id.vars = c("time", "areaId"), 
+             id.vars = c("time", "map.area"), 
              measure.vars = c("s","i","p"),
              value.name = "fraction.sd")
-vaccine.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+vaccine.dat <- merge(h, h.sd, by = c("time", "map.area", "variable"))
 
-vaccine.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+vaccine.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("map.area", "variable", "time")]
 ```
 
-```{r Vaccine Area 335}
-vaccine.plot.335 <- ggplot(
-  data = vaccine.dat[areaId == 335 & variable == "i" & time > 365*2]) + # time %in% seq(365, 2554, by = 14) # if we want to do biweekly PR reports
+```{r Vaccine Map Area 73}
+vaccine.plot.73 <- ggplot(
+  data = vaccine.dat[map.area == 73 & variable == "i" & time > 365*2]) + # time %in% seq(365, 2554, by = 14) # if we want to do biweekly PR reports
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -529,17 +530,17 @@ vaccine.plot.335 <- ggplot(
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
-vaccine.plot.335
+vaccine.plot.73
 
-ggsave(here("Figures/timeseries_vaccine_335.pdf"),
-       plot = vaccine.plot.335,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_vaccine_73.pdf"),
+#        plot = vaccine.plot.73,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
-```{r Vaccine Area 2694 }
-vaccine.plot.2694 <- ggplot(
-  data = vaccine.dat[areaId == 2694 & variable == "i" & time > 365*2]) + 
+```{r Vaccine Area 1509 }
+vaccine.plot.1509 <- ggplot(
+  data = vaccine.dat[map.area == 1509 & variable == "i" & time > 365*2]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -557,10 +558,10 @@ vaccine.plot.2694 <- ggplot(
         axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
-vaccine.plot.2694
+vaccine.plot.1509
 
-ggsave(here("Figures/timeseries_vaccine_2694.pdf"),
-       plot = vaccine.plot.2694,
+ggsave(here("Figures/timeseries_vaccine_1509.pdf"),
+       plot = vaccine.plot.1509,
        width = 6, height = 4.5, units = "in"
       )
 ```
@@ -568,25 +569,25 @@ ggsave(here("Figures/timeseries_vaccine_2694.pdf"),
 
 ## Travel vaccination time series
 ```{r Travel Vaccine}
-vaccine.means <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_means.csv"))
-vaccine.sds <- fread(here("data/simulation_outputs/travel_vaccination/travel_vaccine_pr_sds.csv"))
+vaccine.means <- fread(here("data/simulation_outputs/simulations_for_figures/travel_vaccine_pr_means_time_series.csv"))
+vaccine.sds <- fread(here("data/simulation_outputs/simulations_for_figures/travel_vaccine_pr_sds_time_series.csv"))
 
 h <- melt(vaccine.means,
-          id.vars = c("time", "areaId"), 
+          id.vars = c("time", "map.area"), 
           measure.vars = c("s","i","p"),
           value.name = "fraction")
 h.sd <- melt(vaccine.sds,
-             id.vars = c("time", "areaId"), 
+             id.vars = c("time", "map.area"), 
              measure.vars = c("s","i","p"),
              value.name = "fraction.sd")
-trav.vacc.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+trav.vacc.dat <- merge(h, h.sd, by = c("time", "map.area", "variable"))
 
-trav.vacc.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+trav.vacc.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("map.area", "variable", "time")]
 ```
 
-```{r Travel Vaccine Area 335}
-travel.vacc.plot.335 <- ggplot(
-  data = trav.vacc.dat[areaId == 335 & variable == "i" & time > 35 & time < 365*5]) + 
+```{r Travel Vaccine Area 73}
+travel.vacc.plot.73 <- ggplot(
+  data = trav.vacc.dat[map.area == 73 & variable == "i" & time > 35 & time < 365*5]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -606,17 +607,17 @@ travel.vacc.plot.335 <- ggplot(
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
-travel.vacc.plot.335
+travel.vacc.plot.73
 
-ggsave(here("Figures/timeseries_travel_vaccine_335.pdf"),
-       plot = travel.vacc.plot.335,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_travel_vaccine_73.pdf"),
+#        plot = travel.vacc.plot.73,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
-```{r Vaccine Area 2694 }
-travel.vacc.plot.2694 <- ggplot(
-  data = trav.vacc.dat[areaId == 2694 & variable == "i" & time > 35 & time < 365*5]) + 
+```{r Vaccine Area 1509}
+travel.vacc.plot.1509 <- ggplot(
+  data = trav.vacc.dat[map.area == 1509 & variable == "i" & time > 35 & time < 365*5]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -634,35 +635,35 @@ travel.vacc.plot.2694 <- ggplot(
         axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
-travel.vacc.plot.2694
+travel.vacc.plot.1509
 
-ggsave(here("Figures/timeseries_travel_vaccine_2694.pdf"),
-       plot = travel.vacc.plot.2694,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_travel_vaccine_1509.pdf"),
+#        plot = travel.vacc.plot.1509,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
 ## Reduced importations time series
 ```{r Low importations}
-lowimport.means <- fread(here("data/simulation_outputs/astmh_simulations/lowimport_trueICs_pr_means_1000.csv"))
-lowimport.sds <- fread(here("data/simulation_outputs/astmh_simulations/lowimport_trueICs_pr_sds_1000.csv"))
+lowimport.means <- fread(here("data/simulation_outputs/simulations_for_figures/low_import_pr_means_time_series.csv"))
+lowimport.sds <- fread(here("data/simulation_outputs/simulations_for_figures/low_import_pr_sds_time_series.csv"))
 
 h <- melt(lowimport.means,
-          id.vars = c("time", "areaId"), 
+          id.vars = c("time", "map.area"), 
           measure.vars = c("s","i","p"),
           value.name = "fraction")
 h.sd <- melt(lowimport.sds,
-             id.vars = c("time", "areaId"), 
+             id.vars = c("time", "map.area"), 
              measure.vars = c("s","i","p"),
              value.name = "fraction.sd")
-lowimport.dat <- merge(h, h.sd, by = c("time", "areaId", "variable"))
+lowimport.dat <- merge(h, h.sd, by = c("time", "map.area", "variable"))
 
-lowimport.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("areaId", "variable", "time")]
+lowimport.dat[, lower.bound := max(fraction - fraction.sd, 0), by = c("map.area", "variable", "time")]
 ```
 
-```{r LowImport Area 335}
-lowimport.plot.335 <- ggplot(
-  data = lowimport.dat[areaId == 335 & variable == "i" & time > 40 & time < 365*5]) + 
+```{r LowImport Area 73}
+lowimport.plot.73 <- ggplot(
+  data = lowimport.dat[map.area == 73 & variable == "i" & time > 40 & time < 365*5]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -682,17 +683,17 @@ lowimport.plot.335 <- ggplot(
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
 
-lowimport.plot.335
+lowimport.plot.73
 
-ggsave(here("Figures/timeseries_lowimport_335.pdf"),
-       plot = lowimport.plot.335,
-       width = 6, height = 4.5, units = "in"
-      )
+# ggsave(here("Figures/timeseries_lowimport_73.pdf"),
+#        plot = lowimport.plot.73,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
-```{r LowImport Area 2694}
-lowimport.plot.2694 <- ggplot(
-  data = lowimport.dat[areaId == 2694 & variable == "i" & time > 40 & time < 365*5]) + 
+```{r LowImport Area 1509}
+lowimport.plot.1509 <- ggplot(
+  data = lowimport.dat[map.area == 1509 & variable == "i" & time > 40 & time < 365*5]) + 
   geom_errorbar(mapping = aes(x = time, 
                               ymin = lower.bound,
                               ymax = fraction + fraction.sd), 
@@ -710,12 +711,13 @@ lowimport.plot.2694 <- ggplot(
         axis.title = element_text(size = 24),
         panel.grid = element_line(color = NULL),
         legend.position = c(.8, .8))
-lowimport.plot.2694
 
-ggsave(here("Figures/timeseries_lowimport_2694.pdf"),
-       plot = lowimport.plot.2694,
-       width = 6, height = 4.5, units = "in"
-      )
+lowimport.plot.1509
+
+# ggsave(here("Figures/timeseries_lowimport_1509.pdf"),
+#        plot = lowimport.plot.1509,
+#        width = 6, height = 4.5, units = "in"
+#       )
 ```
 
 # Figure 5 - Travel frequency map
@@ -723,8 +725,8 @@ ggsave(here("Figures/timeseries_lowimport_2694.pdf"),
 
 trip.freq.data <- fread(here("data/clean/trip_frequency_model_estimates.csv"))
 
-areas.inh <- merge(bi.centroids, trip.freq.data[year == 2018, .(areaId, draw.mean)], 
-                   by.x = "OBJECTID", by.y = "areaId", all = FALSE)
+areas.inh <- merge(bi.centroids, trip.freq.data[year == 2018, .(map.area, leave.prob)], 
+                   by = "map.area", all = FALSE)
 
 example.plot <- ggplot()  +
   geom_polygon(data = bi.outline, aes(x = long, y = lat, group = group), 
@@ -734,7 +736,7 @@ example.plot <- ggplot()  +
     geom_path(data = ad4.sub, aes(x = long, y = lat, group = group), 
               color = "black", size = 0.4) + 
   geom_point(data = data.frame(areas.inh),
-             mapping = aes(x = coords.x1, y = coords.x2, color = draw.mean), 
+             mapping = aes(x = utm.x, y = utm.y, color = leave.prob), 
              shape = 15, size = 2.1) + 
   scale_color_gradient(name = "Travel Probability", low = "#FFFF00", high = "#FF0000") + 
   #scale_color_gradient(name = "Population", low = "#FFFFFF", high = "#5519C4", 
