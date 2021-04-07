@@ -2,19 +2,19 @@
 
 This repository contains the code and documentation which support the data analysis and computer simulations for the publication "Quantifying malaria acquired during travel and its role in malaria elimination on Bioko Island" by Daniel T. Citron et al.
 
-The supporting data which accompanies this code may be found *here*. *Need appropriate citations*
+The supporting data which accompanies this code may be found [here](https://figshare.com/articles/dataset/Data_Supporting_Bioko_Island_Travel_Modeling/14380565).
 
 * `aggregated_2015_2018_travel_data.csv` — contains population census data; trips recorded between 2015-2018 from the BIMEP MIS
 * `travel_duration_data.csv` — contains data describing the duration of trips to different destinations from the 2018 BIMEP MIS
 * `travel_dist_by_region.csv` — contains distances between each areaId and the centroid of each destination region
-* `pfpr_draws.csv` — Draws from the joint posterior surface of malaria prevalence estimates (With permission, from [Guerra et al (2009)](https://www.nature.com/articles/s41467-019-10339-1)
+* `pfpr_draws.csv` — Draws from the joint posterior surface of malaria prevalence estimates (With permission, from [Guerra et al (2019)](https://www.nature.com/articles/s41467-019-10339-1)
 * `negative_binomial_predictions_by_destination_region.csv` — Trip destination model results
 * `trip_frequency_model_estimates.csv` — Frequency of travel model results
 
 The R code inside the **scripts** folder is used to preprocess and analyze the data.
 
-* `Trip_frequency_model.R` — Estimates the frequency with which residents leave home. 
-* `Trip_destination_choice_model.R ` — Estimates the probability distribution of choosing a destination region, in a manner similar to a gravity model.
+* `Trip_frequency_model.R` — Estimates the frequency with which residents leave home.
+* `Trip_destination_choice_model.R` — Estimates the probability distribution of choosing a destination region, in a manner similar to a gravity model.
 * `Trip_duration_model.R` — Fits an exponential model to the time spent away
 * `region_to_areaId_mapping.R` — A script for disaggregating trips to regions into trips to specific map-areas within each region. We assume that the probability of visiting each map-area is proportional to population.
 
