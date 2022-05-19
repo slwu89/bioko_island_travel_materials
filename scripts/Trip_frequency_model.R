@@ -18,9 +18,9 @@ library(MASS)
 library(nnet)
 
 # Load aggregated travel data ####
-travel.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
+travel.data <- fread(here("data/aggregated_2015_2018_travel_data.csv"))
 # merge with travel distance data set:
-reg.travel.dist <- fread(here("data/clean/travel_dist_by_region.csv"))
+reg.travel.dist <- fread(here("data/travel_dist_by_region.csv"))
 travel.data <- merge(travel.data, reg.travel.dist, by = "map.area")
 # Format:
 # map.area

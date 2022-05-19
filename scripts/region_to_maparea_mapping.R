@@ -22,7 +22,7 @@
 library(data.table)
 library(here)
 # load data ####
-travel.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
+travel.data <- fread(here("data/aggregated_2015_2018_travel_data.csv"))
 # subset data on 2018
 dat <- travel.data[year == 2018,.(map.area, ad2, pop)]
 
