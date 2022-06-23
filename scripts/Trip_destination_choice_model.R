@@ -31,9 +31,9 @@ library(nnet)
 rm(list=ls());gc()
 
 # Load aggregated travel data ####
-travel.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
+travel.data <- fread(here("data/aggregated_2015_2018_travel_data.csv"))
 # merge with travel distance data set:
-reg.travel.dist <- fread(here("data/clean/travel_dist_by_region.csv"))
+reg.travel.dist <- fread(here("data/travel_dist_by_region.csv"))
 travel.data <- merge(travel.data, reg.travel.dist, by = "map.area")
 # Format:
 # map.area
@@ -109,7 +109,7 @@ scaled.prediction <- rbind(nb.model.dat.clone.near, nb.model.dat.clone.far)[,.(m
 scaled.prediction[, weight := gravity.model.trip.counts/sum(gravity.model.trip.counts) , by = c("map.area", "year")]
 scaled.prediction <- dcast(scaled.prediction, map.area + year + ad2 + pop ~ dest.reg, value.var = "weight")
 
-fwrite(scaled.prediction, file = here("data/clean/negative_binomial_predictions_by_destination_region.csv"))
+fwrite(scaled.prediction, file = here("data/negative_binomial_predictions_by_destination_region.csv"))
 
 #scaled.prediction$draw <- "draw.mean"
 # reformat to match multinomial.map.area.reg.predictions

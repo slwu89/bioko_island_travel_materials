@@ -62,7 +62,7 @@ freq.model.data$leave.freq <- h$fitted.values/56
 
 freq.model.data.clean <- freq.model.data[, c("map.area", "year", "leave.prob"), with = FALSE]
 
-fwrite(freq.model.data.clean, file = here("data/clean/trip_frequency_model_estimates.csv"))
+fwrite(freq.model.data.clean, file = here("data/trip_frequency_model_estimates.csv"))
 
 
 # Perform draws

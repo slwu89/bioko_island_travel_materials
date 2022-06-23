@@ -24,11 +24,11 @@ library(macro.pfsi)
 
 # Load Data and Set Parameter Values ####
 # population data
-pop.data <- fread(here("data/clean/aggregated_2015_2018_travel_data.csv"))
+pop.data <- fread(here("data/aggregated_2015_2018_travel_data.csv"))
 # travel frequencies
-trip.freq.data <- fread(here("data/clean/trip_frequency_model_estimates.csv"))
+trip.freq.data <- fread(here("data/trip_frequency_model_estimates.csv"))
 # travel destination selection model
-trip.dest.data <- fread(here("data/clean/negative_binomial_predictions_by_destination_region.csv")) 
+trip.dest.data <- fread(here("data/negative_binomial_predictions_by_destination_region.csv")) 
 
 # travel duration
 trip.duration.eg <- 1/0.04713604 # rate of return from mainland eg to bioko
@@ -39,7 +39,7 @@ FeverPf = 0.1116336
 TreatPf = 0.602
 
 # PfPR data
-pfpr.data <- fread(here("data/clean/pfpr_draws.csv"))
+pfpr.data <- fread(here("data/pfpr_draws.csv"))
 pfpr.data <- merge(pfpr.data, pop.data[year == 2018, .(map.area)], by = "map.area", all = FALSE)
 
 
@@ -236,7 +236,7 @@ log_pars[[3]] <- list(outfile = vaxx,
                                       collapse = ","))
 
 # Set random seed
-set.seed(1)
+# set.seed(1)
 # 
 run_macro(tmax = 365,
           human_pars = human_pars,

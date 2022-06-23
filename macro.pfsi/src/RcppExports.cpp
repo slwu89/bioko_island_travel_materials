@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // run_macro
 void run_macro(const int tmax, const Rcpp::List& human_pars, const Rcpp::List& mosquito_pars, const Rcpp::List& patch_pars, const Rcpp::List& model_pars, const Rcpp::List& log_streams, const Rcpp::List& vaxx_events, const bool verbose);
 RcppExport SEXP _macro_pfsi_run_macro(SEXP tmaxSEXP, SEXP human_parsSEXP, SEXP mosquito_parsSEXP, SEXP patch_parsSEXP, SEXP model_parsSEXP, SEXP log_streamsSEXP, SEXP vaxx_eventsSEXP, SEXP verboseSEXP) {
