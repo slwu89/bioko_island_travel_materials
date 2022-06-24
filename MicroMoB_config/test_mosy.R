@@ -96,9 +96,11 @@ H.visitors <- t(c(pop.data[year == 2018]$pop, 0) %*% TaR.matrix)
 X.visitors <- t((c(pop.data[year == 2018]$pop, 0) * pfpr.input)  %*% TaR.matrix)
 # This is the number of people who are sick, including visitors and residents both
 kappa <- X.visitors/H.visitors
+kappa <- as.vector(kappa)
 # Define kappa off-island, based on PfPR off-island
 kappa[242] <- .43
-z.spz <- peip*a*c*kappa/(p*a*c*kappa + (1-p))
+# z.spz <- peip*a*c*kappa/(p*a*c*kappa + (1-p))
+z.spz <- peip*a*c*kappa/(a*c*kappa + (1-p))
 # this is Z/M, but we currently do not know M
 M = h.FOI*H.visitors/a/b/z.spz
 M[242] = 0 # for off-island
@@ -114,9 +116,10 @@ Z <- as.vector(Z)
 
 # Derive Lambda, set the emergence rate of mosquitoes in each of the patches
 # this is Lambda, calculated based on equilibrium value for the emergence process
-Lambda = M*(1-p)/p
-Lambda[242] = 0 # for off-island
-Lambda <- as.vector(Lambda)
+# Lambda = M*(1-p)/p
+lambda <- M * (1-p)
+lambda[242] = 0 # for off-island
+lambda <- as.vector(lambda)
 
 
 
@@ -139,7 +142,6 @@ psi <- diag(1, nrow = n.patch)
 #                                  Y = Y,
 #                                  Z = Z)
 
-
 # Human Parameters ####
 # After setting up the patches, we populate them with people
 patch.human.pop <- c(pop.data[year == 2018]$pop, 0) 
@@ -148,112 +150,80 @@ patch.human.pop <- c(pop.data[year == 2018]$pop, 0)
 n.humans <- sum(patch.human.pop)
 
 
+# messing around
+
+
+
+
+# # mosquito parameters
+# f <- 0.3
+# q <- 0.9
+# eip <- 14
+# EIP <- eip + 1
+# 
+# p <- 0.9
+# g <- 1 - p
+# peip <- p^EIP
+# 
+# # human parameters
+# b <- 0.55
+# c <- 0.15
+# 
+# # transmission parameters
+# kappac <- kappa * c
+# 
+# h <- as.vector(h.FOI)
+# N <- as.vector(H.visitors)
+# 
+# # equilibrium solutions
+# # Z_new <- (h*N) / a # from FOI equation h = fqZ/N
+# Z_new <- rep(50, 242)
+# Z_new[242] <- 0
+# Y_new <- Z_new / peip # exact for continuous or discrete time equations
+# Y_new[242] <- 0
+# M_new <- (Z_new*(g + (f*q*kappac))) / (f*q*kappac*peip)
+# M_new[242] <- 0
+# lambda_new <- g*M_new
+# lambda_new[242] = 0
+
 # --------------------------------------------------------------------------------
 #   MicroMoB: stochastic
 # --------------------------------------------------------------------------------
 
-library(MicroMoB)
-library(progress)
-library(ggplot2)
-
-# sample the initial state
-human_state <- matrix(data = 0, nrow = n.patch, ncol = 3, dimnames = list(NULL, c('S', 'I', 'P')))
-human_state[, 'I'] <- rbinom(n = n.patch, size = patch.human.pop, prob = pfpr.input)
-human_state[, 'S'] <- patch.human.pop - human_state[, 'I']
-
 tmax <- 365 * 3
+
 mod <- make_MicroMoB(tmax = tmax, p = n.patch)
+setup_mosquito_RM(mod, stochastic = FALSE, f = f, q = q, eip = eip - 1, p = p, psi = psi, M = M, Y = Y, Z = Z)
+setup_aqua_trace(model = mod, lambda = lambda, stochastic = FALSE)
 
-setup_aqua_trace(model = mod, lambda = Lambda, stochastic = TRUE)
-setup_mosquito_RM(model = mod, stochastic = TRUE, f = f, q = q, eip = eip, p = p, psi = psi, nu = 25, M = M, Y = Y, Z = Z)
-setup_humans_SIP(model = mod, stochastic = TRUE, theta = TaR.matrix, SIP = human_state, b = b, c = c, r = r, rho = rho, eta = eta)
-setup_alternative_trace(model = mod)
-setup_visitor_trace(model = mod)
+# setup_mosquito_RM(mod, stochastic = FALSE, f = f, q = q, eip = eip, p = p, psi = psi, M = M_new, Y = Y_new, Z = Z_new)
+# setup_aqua_trace(model = mod, lambda = lambda_new, stochastic = FALSE)
 
-# human output table
-human_out <- data.table::CJ(day = 1:tmax, state = c('S', 'I', 'P'), patch = 1:n.patch, value = NaN)
-human_out <- human_out[c('S', 'I', 'P'), on="state"]
-data.table::setkey(human_out, day)
-
-pb <- progress_bar$new(total = tmax)
-
-# debugonce(MicroMoB:::step_mosquitoes.RM_stochastic)
-# debugonce(MicroMoB::compute_bloodmeal)
+simout <- data.table::CJ(day = 1:tmax, state = c('M', 'Y', 'Z'), patch = 1:n.patch, value = NaN)
+simout <- simout[c('M', 'Y', 'Z'), on="state"]
+data.table::setkey(simout, day)
 
 # run it
-while (get_tnow(mod) <= tmax) {
-  compute_bloodmeal(model = mod)
-  
-  mod$human$EIR[242] <- eg.eir
-  
-  step_aqua(model = mod)
-  step_mosquitoes(model = mod)
-  step_humans(model = mod)
-  
-  for (i in 1:n.patch) {
-    human_out[day == get_tnow(mod) & patch == i, value := mod$human$SIP[i, ]] 
-  }
-
-  mod$global$tnow <- mod$global$tnow + 1L
-  pb$tick()
-}
-
-human_summarized <- human_out[, .(value = sum(value)), by = .(state, day)]
-
-ggplot(data = human_summarized) +
-  geom_line(aes(x = day, y = value, color = state)) +
-  ggtitle("stochastic")
-
-
-# --------------------------------------------------------------------------------
-#   MicroMoB: deterministic
-# --------------------------------------------------------------------------------
-
-library(MicroMoB)
-library(progress)
-library(ggplot2)
-
-# sample the initial state
-human_state <- matrix(data = 0, nrow = n.patch, ncol = 3, dimnames = list(NULL, c('S', 'I', 'P')))
-human_state[, 'I'] <- patch.human.pop * pfpr.input
-human_state[, 'S'] <- patch.human.pop - human_state[, 'I']
-
-tmax <- 365 * 3
-mod <- make_MicroMoB(tmax = tmax, p = n.patch)
-
-setup_aqua_trace(model = mod, lambda = Lambda, stochastic = FALSE)
-setup_mosquito_RM(model = mod, stochastic = FALSE, f = f, q = q, eip = eip - 1, p = p, psi = psi, nu = 25, M = M, Y = Y, Z = Z)
-setup_humans_SIP(model = mod, stochastic = FALSE, theta = TaR.matrix, SIP = human_state, b = b, c = c, r = r, rho = rho, eta = eta)
-setup_alternative_trace(model = mod)
-setup_visitor_trace(model = mod)
-
-# human output table
-human_out <- data.table::CJ(day = 1:tmax, state = c('S', 'I', 'P'), patch = 1:n.patch, value = NaN)
-human_out <- human_out[c('S', 'I', 'P'), on="state"]
-data.table::setkey(human_out, day)
-
 pb <- progress_bar$new(total = tmax)
 
-# run it
-while (get_tnow(mod) <= tmax) {
-  compute_bloodmeal(model = mod)
+while(get_tnow(mod) <= tmax) {
   
-  mod$human$EIR[242] <- eg.eir
-  
+  mod$mosquito$kappa <- kappa * c
   step_aqua(model = mod)
   step_mosquitoes(model = mod)
-  step_humans(model = mod)
   
-  for (i in 1:n.patch) {
-    human_out[day == get_tnow(mod) & patch == i, value := mod$human$SIP[i, ]] 
-  }
+  simout[day == get_tnow(mod) & state == 'M', value := mod$mosquito$M]
+  simout[day == get_tnow(mod) & state == 'Y', value := mod$mosquito$Y]
+  simout[day == get_tnow(mod) & state == 'Z', value := mod$mosquito$Z]
   
   mod$global$tnow <- mod$global$tnow + 1L
   pb$tick()
 }
 
-human_summarized <- human_out[, .(value = sum(value)), by = .(state, day)]
+simout_summary <- simout[, .(value = sum(value)), by = .(state, day)]
 
-ggplot(data = human_summarized) +
+ggplot(simout_summary) +
   geom_line(aes(x = day, y = value, color = state)) +
-  ggtitle("deterministic")
+  facet_wrap(. ~ state, scales = "free")
+
+# abs(M - simout[day == tmax & state == 'M', value])
