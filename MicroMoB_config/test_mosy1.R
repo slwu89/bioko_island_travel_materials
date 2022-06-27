@@ -95,84 +95,10 @@ kappa <- as.vector(kappa)
 
 
 #  ------------------------------------------------------------
-# try to just get a single node to work
-#  ------------------------------------------------------------
-
-kappa_t <- kappa[128]
-h_t <- h.FOI[128]
-pfpr_t <- pfpr[128]
-H_t <- H.visitors[128]
-
-psi <- matrix(1)
-
-# mosquito parameters
-f = 0.3
-q = 0.9
-a = f*q
-p = 0.9 # mosquito survival
-g = 1 - p # mosquito mortality
-eip <- 11
-peip = p^eip # fraction of mosquitoes who survive incubation period
-
-# transmission parameters
-b = 0.55
-c = 0.15
-
-# human infection parameters
-FeverPf = 0.1116336
-TreatPf = 0.602
-r = 1/200 # rate at which people become cured
-eta = 1/32 # rate at which prophylaxis wears off
-rho = FeverPf*TreatPf # probability of clearing infection through treatment cascade
-
-# # equilibrium solutions
-surv <- peip
-# surv <- exp(-g*eip)
-kappa <- 0.2 * c
-Z <- 10 # Z from FOI
-Y <- Z / surv
-M <- (Z*(g + (f*q*kappa))) / (f*q*kappa*surv) # M from kappa
-lambda <- g*M
-
-# run sim
-tmax <- 365 * 2
-
-mod <- make_MicroMoB(tmax = tmax, p = 1)
-setup_mosquito_RM(mod, stochastic = FALSE, f = f, q = q, eip = eip - 1, p = p, psi = psi, M = M, Y = Y, Z = Z)
-setup_aqua_trace(model = mod, lambda = lambda, stochastic = FALSE)
-
-simout <- data.table::CJ(day = 1:tmax, state = c('M', 'Y', 'Z'), value = NaN)
-simout <- simout[c('M', 'Y', 'Z'), on="state"]
-data.table::setkey(simout, day)
-
-# run it
-pb <- progress_bar$new(total = tmax)
-
-while(get_tnow(mod) <= tmax) {
-  
-  mod$mosquito$kappa <- kappa
-  step_aqua(model = mod)
-  step_mosquitoes(model = mod)
-  
-  simout[day == get_tnow(mod) & state == 'M', value := mod$mosquito$M]
-  simout[day == get_tnow(mod) & state == 'Y', value := mod$mosquito$Y]
-  simout[day == get_tnow(mod) & state == 'Z', value := mod$mosquito$Z]
-  
-  mod$global$tnow <- mod$global$tnow + 1L
-  pb$tick()
-}
-
-simout_summary <- simout[, .(value = sum(value)), by = .(state, day)]
-
-ggplot(simout_summary) +
-  geom_line(aes(x = day, y = value, color = state)) +
-  facet_wrap(. ~ state, scales = "free")
-
-
-
-#  ------------------------------------------------------------
 # once more, with gusto
 #  ------------------------------------------------------------
+
+psi <- matrix(1)
 
 # # equilibrium solutions
 surv <- peip
