@@ -1,0 +1,46 @@
+rm(list=ls());gc()
+
+# --------------------------------------------------------------------------------
+# figuring out how to set up the equilibrium model in 3 patch case
+# --------------------------------------------------------------------------------
+
+TaR <- matrix(
+  data = c(
+    0.9, 0.025, 0.075,
+    0.1, 0.85, 0.05,
+    0.01, 0.09, 0.9
+  ),
+  nrow = 3, ncol = 3, byrow = TRUE
+)
+
+# pfpr amongst residents
+pfpr <- c(0.4, 0.25, 0.1)
+
+# total human pop
+H <- c(100, 200, 300)
+
+
+
+
+
+# See Ruktanonchai et al. (2016) and Supplementary Information for derivation
+odds.vector <- r/(1-rho)*pfpr/(1-(1+rho*r/eta/(1-rho))*pfpr)
+
+# Force of Infection (FOI) or "happenings rate" h
+h.FOI <- MASS::ginv(TaR.matrix) %*% odds.vector
+h.FOI[which(h.FOI < 0)] <- 0
+h.FOI <- as.vector(h.FOI)
+
+# Calculate Mosquito Parameters ####
+# we begin by calculating the fraction of infected mosquitoes, the sporozoite rate, from the Ross-Macdonald equations + Kappa
+# Total population, including visitors
+H.visitors <- t(pop.data[year == 2018, pop] %*% TaR.matrix)
+# Sick population, including visitors
+X.visitors <- t((pop.data[year == 2018, pop] * pfpr)  %*% TaR.matrix)
+
+# kappa: net infectiousness of human pop at each place
+kappa <- X.visitors/H.visitors * c
+kappa <- as.vector(kappa)
+
+H.visitors <- as.vector(H.visitors)
+n_patch <- length(kappa)
