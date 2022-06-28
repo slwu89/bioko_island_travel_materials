@@ -44,3 +44,44 @@ kappa <- as.vector(kappa)
 
 H.visitors <- as.vector(H.visitors)
 n_patch <- length(kappa)
+
+
+
+# test SIP equilibrium for non spatial model
+library(deSolve)
+
+# human infection parameters
+FeverPf = 0.1116336
+TreatPf = 0.602
+r = 1/200 # rate at which people become cured
+eta = 1/32 # rate at which prophylaxis wears off
+rho = FeverPf*TreatPf # probability of clearing infection through treatment cascade
+
+pfpr <- 0.2
+N <- 500
+
+# eq equations
+I <- pfpr * N
+S <- N - I - ((rho*I*r)/(eta*(1-rho)))
+P <- N - I - S
+h <- (eta * P) / (rho * S)
+
+sip_ode <- function(t, y, params) {
+  eta <- params$eta
+  r <- params$r
+  h <- params$h
+  rho <- params$rho
+  dxdt <- rep(0, 3)
+  S <- y[1]
+  I <- y[2]
+  P <- y[3]
+  dxdt[1] <- -h*S + r*I + eta*P
+  dxdt[2] <- h*(1-rho)*S - r*I
+  dxdt[3] <- h*rho*S - eta*P
+  return(list(dxdt))
+}
+
+params <- list(r=r,h=h,rho=rho,eta=eta)
+y <- c(S,I,P)
+
+out <- ode(y = y, times = 0:100, func = sip_ode, parms = params, method = "ode23")
