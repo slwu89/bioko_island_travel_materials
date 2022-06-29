@@ -75,7 +75,7 @@ rho = FeverPf*TreatPf # probability of clearing infection through treatment casc
 pfpr <- 0.2
 N <- 500
 
-# eq equations
+# eq equations for ODE
 I <- pfpr * N
 S <- N - I - ((rho*I*r)/(eta*(1-rho)))
 P <- N - I - S
@@ -145,6 +145,12 @@ S <- N - I - ((rho*I*r)/(eta*(1-rho)))
 P <- N - I - S
 h <- (eta * P) / (rho * S) # the FOI experienced by each population during their movement
 
+# # equilibrium calcs for difference equations
+# I <- pfpr * N
+# S <- N - I - ((rho*I*(1+r)) / ((1+eta)*(1-rho)))
+# P <- N - I - S
+# h <- ((1+eta) * P) / (rho * S)
+
 EIR <- MASS::ginv(TaR) %*% h/b # the EIR produced by mosquitoes at each patch
 EIR <- as.vector(EIR)
 
@@ -172,30 +178,30 @@ M <- (Z*(g + (f*q*p*kappa))) / (f*q*kappa*p*surv) # M from kappa
 lambda <- g*M
 
 
-# --------------------------------------------------------------------------------
-# bloodmeal calcs
-# --------------------------------------------------------------------------------
-
-bm <- list()
-
-# human quantities
-bm$H <- N
-bm$x <- pfpr * c
-bm$wf <- rep(1,3)
-bm$Psi <- TaR
-bm$W <- as.vector(t(bm$Psi) %*% (bm$wf * bm$H))
-
-# biting distribution matrix (n x p)
-bm$beta <- diag(bm$wf, nrow = 3, ncol = 3) %*% bm$Psi %*% diag(1/bm$W, nrow = 3, ncol = 3)
-
-# density of infective mosquitoes
-bm$Z <- Z
-
-# EIR experienced by strata
-bm$EIR <- as.vector(bm$beta %*% (a*bm$Z))
-
-# kappa on mosquitoes from ambient pop
-bm$kappa <- as.vector(t(bm$beta) %*% (bm$x*bm$H))
+# # --------------------------------------------------------------------------------
+# # bloodmeal calcs
+# # --------------------------------------------------------------------------------
+# 
+# bm <- list()
+# 
+# # human quantities
+# bm$H <- N
+# bm$x <- pfpr * c
+# bm$wf <- rep(1,3)
+# bm$Psi <- TaR
+# bm$W <- as.vector(t(bm$Psi) %*% (bm$wf * bm$H))
+# 
+# # biting distribution matrix (n x p)
+# bm$beta <- diag(bm$wf, nrow = 3, ncol = 3) %*% bm$Psi %*% diag(1/bm$W, nrow = 3, ncol = 3)
+# 
+# # density of infective mosquitoes
+# bm$Z <- Z
+# 
+# # EIR experienced by strata
+# bm$EIR <- as.vector(bm$beta %*% (a*bm$Z))
+# 
+# # kappa on mosquitoes from ambient pop
+# bm$kappa <- as.vector(t(bm$beta) %*% (bm$x*bm$H))
 
 
 
