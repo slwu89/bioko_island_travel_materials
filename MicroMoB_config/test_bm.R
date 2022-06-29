@@ -1,4 +1,8 @@
 rm(list=ls());gc()
+library(MicroMoB)
+library(progress)
+library(ggplot2)
+library(deSolve)
 
 # --------------------------------------------------------------------------------
 # figuring out how to set up the equilibrium model in 3 patch case
@@ -50,8 +54,6 @@ rm(list=ls());gc()
 # test SIP equilibrium for non spatial model
 # --------------------------------------------------------------------------------
 
-library(deSolve)
-
 # mosquito parameters
 f = 0.3
 q = 0.9
@@ -100,6 +102,7 @@ params <- list(r=r,h=h,rho=rho,eta=eta)
 y <- c(S,I,P)
 
 out <- ode(y = y, times = 0:100, func = sip_ode, parms = params, method = "ode23")
+plot(out)
 
 
 # --------------------------------------------------------------------------------
@@ -211,10 +214,6 @@ lambda <- g*M
 # --------------------------------------------------------------------------------
 #   deterministic simulation
 # --------------------------------------------------------------------------------
-
-library(MicroMoB)
-library(progress)
-library(ggplot2)
 
 # initial conditions
 n_patch <- 3
