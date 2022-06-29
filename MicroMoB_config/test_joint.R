@@ -8,6 +8,7 @@ library(here)
 library(MicroMoB)
 library(progress)
 library(ggplot2)
+library(parallel)
 
 # Load Data and Set Parameter Values ####
 # population data
@@ -202,8 +203,6 @@ mod <- make_MicroMoB(tmax = tmax, p = n_patch)
 setup_aqua_trace(model = mod, lambda = lambda, stochastic = FALSE)
 setup_mosquito_RM(model = mod, stochastic = FALSE, f = f, q = q, eip = eip, p = p, psi = diag(n_patch), nu = 25, M = M, Y = Y, Z = Z)
 setup_humans_SIP(model = mod, stochastic = FALSE, theta = TaR, SIP = human_state, b = b, c = c, r = r, rho = rho, eta = eta)
-setup_alternative_trace(model = mod)
-setup_visitor_trace(model = mod)
 
 # human output table
 human_out <- data.table::CJ(day = 1:tmax, state = c('S', 'I', 'P'), patch = 1:n_patch, value = NaN)
@@ -220,9 +219,7 @@ pb <- progress_bar$new(total = tmax)
 # run it
 while (get_tnow(mod) <= tmax) {
   
-  compute_bloodmeal(model = mod)
-  
-  # mod$human$EIR[242] <- EIR[242]
+  compute_bloodmeal_simple(model = mod)
   mod$human$EIR <- mod$human$EIR + (TaR[,242] * rio_muni_eir)
   
   step_aqua(model = mod)
@@ -241,20 +238,105 @@ while (get_tnow(mod) <= tmax) {
   pb$tick()
 }
 
-human_summarized <- human_out[, .(value = sum(value)), by = .(state, day)]
+human_out <- human_out[, .(value = sum(value)), by = .(state, day)]
 
-ggplot(data = human_summarized) +
-  geom_line(aes(x = day, y = value, color = state)) +
-  facet_wrap(. ~ state, scales = "free") +
-  ggtitle("deterministic humans")
+# ggplot(data = human_summarized) +
+#   geom_line(aes(x = day, y = value, color = state)) +
+#   facet_wrap(. ~ state, scales = "free") +
+#   ggtitle("deterministic humans")
 
 mosy_out <- mosy_out[, .(value = sum(value)), by = .(state, day)]
 
-ggplot(mosy_out) +
-  geom_line(aes(x = day, y = value, color = state)) +
-  facet_wrap(. ~ state, scales = "free") +
-  ggtitle("deterministic mosy")
+# ggplot(mosy_out) +
+#   geom_line(aes(x = day, y = value, color = state)) +
+#   facet_wrap(. ~ state, scales = "free") +
+#   ggtitle("deterministic mosy")
+
+human_out[, species := "human"]
+mosy_out[, species := "mosquito"]
+det_out <- rbind(human_out, mosy_out)
+
+ggplot(det_out) +
+  geom_line(aes(x = day, y = value, color = species, linetype = state), size = 1.15) +
+  facet_wrap(species ~ state, scales = "free") +
+  ggtitle("deterministic model") +
+  theme_bw()
 
 
 
+# --------------------------------------------------------------------------------
+#   stochastic simulation
+# --------------------------------------------------------------------------------
 
+# # initial conditions
+# n_patch <- nrow(TaR)
+# human_state <- matrix(data = 0, nrow = n_patch, ncol = 3, dimnames = list(NULL, c('S', 'I', 'P')))
+# human_state[, 'S'] <- S
+# human_state[, 'I'] <- I
+# human_state[, 'P'] <- P
+# human_state[242, ] <- 0
+# 
+# tmax <- 365 * 2
+
+parout <- parallel::mclapply(X = 1:20, FUN = function(runid) {
+  
+  mod <- make_MicroMoB(tmax = tmax, p = n_patch)
+  
+  human_state <- round(human_state)
+  M <- round(M)
+  Y <- round(Y)
+  Z <- round(Z)
+  
+  setup_aqua_trace(model = mod, lambda = lambda, stochastic = TRUE)
+  setup_mosquito_RM(model = mod, stochastic = TRUE, f = f, q = q, eip = eip, p = p, psi = diag(n_patch), nu = 25, M = M, Y = Y, Z = Z)
+  setup_humans_SIP(model = mod, stochastic = TRUE, theta = TaR, SIP = human_state, b = b, c = c, r = r, rho = rho, eta = eta)
+  
+  # human output table
+  human_out <- data.table::CJ(day = 1:tmax, state = c('S', 'I', 'P'), patch = 1:n_patch, value = NaN)
+  human_out <- human_out[c('S', 'I', 'P'), on="state"]
+  data.table::setkey(human_out, day, patch)
+  
+  # mosy output table
+  mosy_out <- data.table::CJ(day = 1:tmax, state = c('M', 'Y', 'Z'), patch = 1:n_patch, value = NaN)
+  mosy_out <- mosy_out[c('M', 'Y', 'Z'), on="state"]
+  data.table::setkey(mosy_out, day, patch)
+  
+  # run it
+  while (get_tnow(mod) <= tmax) {
+    
+    compute_bloodmeal_simple(model = mod)
+    mod$human$EIR <- mod$human$EIR + (TaR[,242] * rio_muni_eir)
+    
+    step_aqua(model = mod)
+    step_mosquitoes(model = mod)
+    step_humans(model = mod)
+    
+    human_out[day==get_tnow(mod) & state=='S', value := mod$human$SIP[, 'S']]
+    human_out[day==get_tnow(mod) & state=='I', value := mod$human$SIP[, 'I']]
+    human_out[day==get_tnow(mod) & state=='P', value := mod$human$SIP[, 'P']]
+    
+    mosy_out[day == get_tnow(mod) & state == 'M', value := mod$mosquito$M]
+    mosy_out[day == get_tnow(mod) & state == 'Y', value := mod$mosquito$Y]
+    mosy_out[day == get_tnow(mod) & state == 'Z', value := mod$mosquito$Z]
+    
+    mod$global$tnow <- mod$global$tnow + 1L
+  }
+  
+  human_out <- human_out[, .(value = sum(value)), by = .(state, day)]
+  mosy_out <- mosy_out[, .(value = sum(value)), by = .(state, day)]
+  
+  human_out[, species := "human"]
+  mosy_out[, species := "mosquito"]
+  
+  out <- rbind(mosy_out, human_out)
+  out[, run := as.integer(runid)]
+  
+  return(out)
+}, mc.cores = 10)
+
+parout <- data.table::rbindlist(parout)
+
+ggplot(parout) +
+  geom_line(aes(x = day, y = value, color = species, linetype = state, group = run)) +
+  facet_wrap(species ~ state, scales = "free") +
+  ggtitle("stochastic model")
