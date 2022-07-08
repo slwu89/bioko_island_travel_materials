@@ -100,7 +100,6 @@ h_patch <- as.vector(MASS::ginv(TaR) %*% odds)
 H <- as.vector(N %*% TaR)
 Z <- (h_patch * H) / (a * b)
 
-
 I <- pfpr * N
 S <- N - I - ((rho*I*r)/(eta*(1-rho)))
 P <- N - I - S
@@ -218,7 +217,7 @@ pb <- progress_bar$new(total = tmax)
 
 # run it
 while (get_tnow(mod) <= tmax) {
-  
+  # control
   compute_bloodmeal_simple(model = mod)
   mod$human$EIR <- mod$human$EIR + (TaR[,242] * rio_muni_eir)
   
@@ -256,11 +255,11 @@ human_out[, species := "human"]
 mosy_out[, species := "mosquito"]
 det_out <- rbind(human_out, mosy_out)
 
-ggplot(det_out) +
-  geom_line(aes(x = day, y = value, color = species, linetype = state), size = 1.15) +
-  facet_wrap(species ~ state, scales = "free") +
-  ggtitle("deterministic model") +
-  theme_bw()
+# ggplot(det_out) +
+#   geom_line(aes(x = day, y = value, color = species, linetype = state), size = 1.15) +
+#   facet_wrap(species ~ state, scales = "free") +
+#   ggtitle("deterministic model") +
+#   theme_bw()
 
 
 
@@ -268,17 +267,7 @@ ggplot(det_out) +
 #   stochastic simulation
 # --------------------------------------------------------------------------------
 
-# # initial conditions
-# n_patch <- nrow(TaR)
-# human_state <- matrix(data = 0, nrow = n_patch, ncol = 3, dimnames = list(NULL, c('S', 'I', 'P')))
-# human_state[, 'S'] <- S
-# human_state[, 'I'] <- I
-# human_state[, 'P'] <- P
-# human_state[242, ] <- 0
-# 
-# tmax <- 365 * 2
-
-parout <- parallel::mclapply(X = 1:20, FUN = function(runid) {
+parout <- parallel::mclapply(X = 1:40, FUN = function(runid) {
   
   mod <- make_MicroMoB(tmax = tmax, p = n_patch)
   
@@ -336,7 +325,11 @@ parout <- parallel::mclapply(X = 1:20, FUN = function(runid) {
 
 parout <- data.table::rbindlist(parout)
 
+sto_mean <- parout[, .('mean' = mean(value)), by = .(state, day, species)]
+
 ggplot(parout) +
-  geom_line(aes(x = day, y = value, color = species, linetype = state, group = run)) +
+  geom_line(aes(x = day, y = value, color = species, linetype = state, group = run), alpha = 0.35) +
+  geom_line(data = det_out, aes(x = day, y = value, color = species)) +
+  geom_line(data = sto_mean, aes(x = day, y = mean, color = species)) +
   facet_wrap(species ~ state, scales = "free") +
-  ggtitle("stochastic model")
+  ggtitle("summarized Bioko equilibrium simulation")
