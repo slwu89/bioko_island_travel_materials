@@ -66,74 +66,44 @@ rho = FeverPf*TreatPf # probability of clearing infection through treatment casc
 
 TaR <- matrix(
   data = c(
-    0.9, 0.025, 0.075,
-    0.1, 0.85, 0.05,
-    0.01, 0.09, 0.9
+    0.9, 0.025, 0.07, 0.005,
+    0.1, 0.8, 0.05, 0.05,
+    0.01, 0.09, 0.875, 0.025,
+    0, 0, 0, 1
   ),
-  nrow = 3, ncol = 3, byrow = TRUE
+  nrow = 4, ncol = 4, byrow = TRUE
 )
 
-N <- c(1, 2, 3) * 1e6 #resident pop
-pfpr <- c(0.1, 0.3, 0.25)
+N <- c(1, 2, 3, 0) * 1e6 #resident pop
+pfpr <- c(0.1, 0.3, 0.25, 0.15)
 
-# EIR <- c(0.5, 2, 1)
-# 
-# h_manual <- rep(0, 3)
-# for (i in 1:3) {
-#   for (j in 1:3) {
-#     h_manual[i] <- h_manual[i] + (TaR[i,j] * EIR[j])
-#   }
-# }
-# 
-# h_mat <- TaR %*% EIR
-# 
-# 
-# H_man <- rep(0, 3)
-# for (j in 1:3) {
-#   for (i in 1:3) {
-#     H_man[j] <- H_man[j] + (TaR[i,j] * N[i])
-#   }
-# }
-# 
-# H_mat <- N %*% TaR
+odds <- r/(1-rho)*pfpr/(1-(1+rho*r/eta/(1-rho))*pfpr)
 
-# let's do this 3 patch setup and try to solve the EIR required to give equilibrium PfPR
+# Force of Infection (FOI) in each patch (not on each strata)
+h_patch <- as.vector(MASS::ginv(TaR) %*% odds)
+
+# EIR in patches
+H <- as.vector(N %*% TaR)
+Z <- (h_patch * H) / (a * b)
+
 I <- pfpr * N
 S <- N - I - ((rho*I*r)/(eta*(1-rho)))
 P <- N - I - S
-h <- (eta * P) / (rho * S) # the FOI experienced by each population during their movement
-
-# # equilibrium calcs for difference equations
-# I <- pfpr * N
-# S <- N - I - ((rho*I*(1+r)) / ((1+eta)*(1-rho)))
-# P <- N - I - S
-# h <- ((1+eta) * P) / (rho * S)
-
-EIR <- MASS::ginv(TaR) %*% h/b # the EIR produced by mosquitoes at each patch
-EIR <- as.vector(EIR)
-
-# check, should be very small
-abs(h - as.vector(TaR %*% EIR)*b)
-
-# get Z
-H <- N %*% TaR
-H <- as.vector(H)
-Z <- (EIR * H) / a # Z calc from ambient pop, not census pop
 
 # kappa
-c <- 0.15
-# kappa <- (pfpr*c) %*% TaR
-# kappa <- as.vector(kappa)
+I_ambient <- as.vector(I %*% TaR)
+kappa <- (I_ambient / H) * c
 
-# kappa a diff way (correct)
-# ambient pfpr
-kappa <- as.vector((I %*% TaR) / (N %*% TaR)) * c
-
-# rest of the mosy
 surv <- peip
 Y <- Z / surv
 M <- (Z*(g + (f*q*p*kappa))) / (f*q*kappa*p*surv) # M from kappa
 lambda <- g*M
+
+M[4] <- 0
+Y[4] <- 0
+Z[4] <- 0
+lambda[4] <- 0
+reservoir_eir <- h_patch[4]/b
 
 
 # --------------------------------------------------------------------------------
@@ -169,6 +139,7 @@ pb <- progress_bar$new(total = tmax)
 # run it
 while (get_tnow(mod) <= tmax) {
   compute_bloodmeal_simple(model = mod)
+  mod$human$EIR <- mod$human$EIR + (TaR[,4] * reservoir_eir)
 
   step_aqua(model = mod)
   step_mosquitoes(model = mod)
@@ -192,6 +163,11 @@ mosy_out <- mosy_out[, .(value = sum(value)), by = .(state, day)]
 human_out[, species := "human"]
 mosy_out[, species := "mosquito"]
 det_out <- rbind(human_out, mosy_out)
+
+ggplot(det_out) +
+  geom_line(aes(x = day, y = value, color = species)) +
+  facet_wrap(species ~ state, scales = "free")
+
 
 
 # --------------------------------------------------------------------------------
@@ -225,6 +201,7 @@ parout <- parallel::mclapply(X = 1:40, FUN = function(runid) {
   while (get_tnow(mod) <= tmax) {
     
     compute_bloodmeal_simple(model = mod)
+    mod$human$EIR <- mod$human$EIR + (TaR[,4] * reservoir_eir)
 
     step_aqua(model = mod)
     step_mosquitoes(model = mod)

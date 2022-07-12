@@ -196,7 +196,7 @@ human_state[, 'I'] <- I
 human_state[, 'P'] <- P
 human_state[242, ] <- 0
 
-tmax <- 365 * 2
+tmax <- 365 * 10
 mod <- make_MicroMoB(tmax = tmax, p = n_patch)
 
 setup_aqua_trace(model = mod, lambda = lambda, stochastic = FALSE)
@@ -238,29 +238,11 @@ while (get_tnow(mod) <= tmax) {
 }
 
 human_out <- human_out[, .(value = sum(value)), by = .(state, day)]
-
-# ggplot(data = human_summarized) +
-#   geom_line(aes(x = day, y = value, color = state)) +
-#   facet_wrap(. ~ state, scales = "free") +
-#   ggtitle("deterministic humans")
-
 mosy_out <- mosy_out[, .(value = sum(value)), by = .(state, day)]
-
-# ggplot(mosy_out) +
-#   geom_line(aes(x = day, y = value, color = state)) +
-#   facet_wrap(. ~ state, scales = "free") +
-#   ggtitle("deterministic mosy")
 
 human_out[, species := "human"]
 mosy_out[, species := "mosquito"]
 det_out <- rbind(human_out, mosy_out)
-
-# ggplot(det_out) +
-#   geom_line(aes(x = day, y = value, color = species, linetype = state), size = 1.15) +
-#   facet_wrap(species ~ state, scales = "free") +
-#   ggtitle("deterministic model") +
-#   theme_bw()
-
 
 
 # --------------------------------------------------------------------------------
