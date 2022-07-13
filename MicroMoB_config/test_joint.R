@@ -303,7 +303,7 @@ parout <- parallel::mclapply(X = 1:40, FUN = function(runid) {
   out[, run := as.integer(runid)]
   
   return(out)
-}, mc.cores = 10)
+}, mc.cores = 20)
 
 parout <- data.table::rbindlist(parout)
 
