@@ -1,8 +1,13 @@
+rm(list = ls()); gc()
 library(deSolve)
 library(expm)
 library(MASS)
 library(data.table)
 library(ggplot2)
+
+# --------------------------------------------------------------------------------
+# check forward solutions (start with Lambda)
+# --------------------------------------------------------------------------------
 
 f <- 0.3
 q <- 0.9
@@ -27,10 +32,14 @@ Lambda <- c(5, 10, 8, 6)
 
 Y0 <- rep(0, n_patch*3)
 
+M_ix <- 1:4
+Y_ix <- 5:8
+Z_ix <- 9:12
+
 spat_ode <- function(t, y, pars) {
-  M <- y[1:4]
-  Y <- y[5:8]
-  Z <- y[9:12]
+  M <- y[M_ix]
+  Y <- y[Y_ix]
+  Z <- y[Z_ix]
   if (t < tau) {
     M_tau <- Y0[1:4]
     Y_tau <- Y0[5:8]
@@ -55,21 +64,81 @@ ggplot(spat_out) +
   geom_line(aes(x=time,y=value,color=variable)) +
   facet_wrap(. ~ variable, scales = 'free')
 
-# check results in SI
+tmax <- spat_out[, max(time)]
+
+# check M
 Omega_inv <- MASS::ginv(Omega)
-Omega_inv %*% Lambda
-spat_out[time == 365, value[1:4]]
+M_analytic <- as.vector(Omega_inv %*% Lambda)
+M_simulation <- spat_out[time == tmax, value[M_ix]]
 
-# solve the inverse, given Z solve for Lambda to give that, and the other state variables
-Z <- c(50, 20, 100, 80)
-OmegaEIP_inv <- MASS::ginv(OmegaEIP)
+rbind(M_analytic, M_simulation)
 
-OmegaEIP_inv %*% Omega %*% Z
+# check Y
+fqk_Omega_inv <- MASS::ginv(diag(f*q*kappa) + Omega)
+Y_analytic <- as.vector(fqk_Omega_inv %*% (f*q*kappa*M_analytic))
+Y_simulation <- spat_out[time == tmax, value[Y_ix]]
 
-as.vector((OmegaEIP_inv %*% (Omega %*% Z)) / (f*q*kappa))
+rbind(Y_analytic, Y_simulation)
 
-as.vector(OmegaEIP_inv %*% (Omega %*% Z))
+# check Z
+Z_analytic <- as.vector((Omega_inv %*% OmegaEIP) %*% (matrix(f*q*kappa) * ((M_analytic) - (fqk_Omega_inv %*% (f*q*kappa*(M_analytic))))))
+Z_simulation <- spat_out[time == tmax, value[Z_ix]]
+
+rbind(Z_analytic, Z_simulation)
 
 
+# --------------------------------------------------------------------------------
+# check backwards solutions (start with Z)
+# --------------------------------------------------------------------------------
 
+# check M-Y
+Z <- Z_simulation
+MY_analytic <- as.vector((MASS::ginv(OmegaEIP) %*% Omega %*% Z) / matrix(f*q*kappa))
+MY_simulation <- spat_out[time == tmax, value[M_ix] - value[Y_ix]]
 
+rbind(MY_analytic, MY_simulation)
+
+# check Y
+Y_analytic <- as.vector(Omega_inv %*% (matrix(f*q*kappa) * matrix(MY_analytic)))
+
+rbind(Y_analytic, Y_simulation)
+
+# check M
+M_analytic <- MY_analytic + Y_analytic
+
+rbind(M_analytic, M_simulation)
+
+# check Lambda
+Lambda_analytic <- as.vector(Omega %*% M_analytic)
+
+rbind(Lambda_analytic, Lambda)
+
+# # check M
+# Omega_inv <- MASS::ginv(Omega)
+# M <- as.vector(Omega_inv %*% Lambda)
+# M
+# spat_out[time == 365, value[1:4]]
+# 
+# # check Y
+# spat_out[time == 365, value[5:8]]
+# as.vector(MASS::ginv(diag(f*q*kappa) + Omega) %*% (diag(f*q*kappa) %*% M))
+# as.vector(MASS::ginv(diag(f*q*kappa) + Omega) %*% (f*q*kappa*M))
+# 
+# # check M-Y
+# Z <- spat_out[time == 365, value[9:12]]
+# as.vector((MASS::ginv(OmegaEIP) %*% Omega %*% Z) / matrix(f*q*kappa))
+# spat_out[time == 365, value[1:4]] - spat_out[time == 365, value[5:8]]
+# 
+# # check Y other way
+# M_Y <- as.vector((MASS::ginv(OmegaEIP) %*% Omega %*% Z) / matrix(f*q*kappa))
+# 
+# as.vector(Omega_inv %*% (matrix(f*q*kappa) * matrix(M_Y)))
+# spat_out[time == 365, value[5:8]]
+# 
+# Y <- as.vector(Omega_inv %*% MASS::ginv(OmegaEIP) %*% Omega %*% Z)
+# 
+# # check Z the ugly way
+# (Omega_inv %*% OmegaEIP) %*% (matrix(f*q*kappa) * ((Omega_inv %*% Lambda) - (MASS::ginv(diag(f*q*kappa) + Omega) %*% (f*q*kappa*(Omega_inv%*%Lambda)))))
+# 
+# as.vector((Omega_inv %*% OmegaEIP) %*% (matrix(f*q*kappa) * ((Omega_inv %*% Lambda) - (MASS::ginv(diag(f*q*kappa) + Omega) %*% (f*q*kappa*(Omega_inv%*%Lambda))))))
+# spat_out[time == 365, value[9:12]]
