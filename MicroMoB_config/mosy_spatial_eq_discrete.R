@@ -107,3 +107,11 @@ rbind(Z_analytic, Z_simulation)
 
 Z_analytic <- ((M_analytic - Y_analytic) %*% diag(f*q*kappa) %*% (Psi%^%(tau+1)) %*% (diag(p,4)%^%(tau+1))) %*% solve(diag(4) - (Psi %*% diag(p,4)))
 
+# M-Y discrete time (backwards)
+M_Y_analytic <- Z_analytic %*% (diag(4) - (Psi %*% diag(p,4))) %*% solve(diag(f*q*kappa) %*% (Psi%^%(tau+1)) %*% (diag(p,4)%^%(tau+1)))
+
+# Y discrete time (backwards)
+M_Y_analytic %*% diag(f*q*kappa) %*% Psi %*% diag(p,4) %*% solve(diag(4) - (Psi %*% diag(p,4)))
+
+# Lambda discrete time (backwards)
+M_analytic %*% (diag(4) - (Psi %*% diag(p,4)))
