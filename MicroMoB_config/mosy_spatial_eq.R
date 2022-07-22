@@ -18,6 +18,8 @@ sigma <- 1/10
 
 tau <- 11
 
+# for sampling K
+set.seed(43583491L)
 K <- matrix(0, n_patch, n_patch)
 K[upper.tri(K)] <- rexp(sum(1:(n_patch-1)))
 K[lower.tri(K)] <- rexp(sum(1:(n_patch-1)))
@@ -41,12 +43,12 @@ spat_ode <- function(t, y, pars) {
   Y <- y[Y_ix]
   Z <- y[Z_ix]
   if (t < tau) {
-    M_tau <- Y0[1:4]
-    Y_tau <- Y0[5:8]
+    M_tau <- Y0[M_ix]
+    Y_tau <- Y0[Y_ix]
   } else {
     MYZ_tau <- lagvalue(t - tau)
-    M_tau <- MYZ_tau[1:4]
-    Y_tau <- MYZ_tau[5:8]
+    M_tau <- MYZ_tau[M_ix]
+    Y_tau <- MYZ_tau[Y_ix]
   }
   dMdt <- Lambda - (Omega %*% M)
   dYdt <- f*q*kappa*(M - Y) - (Omega %*% Y)
@@ -69,7 +71,7 @@ tmax <- spat_out[, max(time)]
 # useful matrices
 # OmegaEIP_inv <- qr.solve(OmegaEIP)
 OmegaEIP_inv <- expm::expm(Omega * tau) # properties of matrix exp
-Omega_inv <- qr.solve(Omega)
+Omega_inv <- solve(Omega)
 
 # check M
 M_analytic <- as.vector(Omega_inv %*% Lambda)
@@ -79,7 +81,7 @@ rbind(M_analytic, M_simulation)
 
 # check Y
 # fqk_Omega_inv <- MASS::ginv(diag(f*q*kappa) + Omega)
-fqk_Omega_inv <- qr.solve(diag(f*q*kappa) + Omega)
+fqk_Omega_inv <- solve(diag(f*q*kappa) + Omega)
 Y_analytic <- as.vector(fqk_Omega_inv %*% (f*q*kappa*M_analytic))
 Y_simulation <- spat_out[time == tmax, value[Y_ix]]
 
