@@ -129,13 +129,13 @@ det_out <- rbind(human_out, mosy_out)
 
 # reduced output
 human_pfpr <- human_out[, .('pfpr' = .SD[state == 'I', value] / .SD[, sum(value)]), by = .(day, patch)]
-mosy_out <- mosy_out[, .('spz' = .SD[state == 'Z', value] / .SD[state == 'M', value]), by = .(day, patch)]
+mosy_spz <- mosy_out[, .('spz' = .SD[state == 'Z', value] / .SD[state == 'M', value]), by = .(day, patch)]
 
 # diagnostic plots
 ggplot(human_pfpr) +
   geom_line(aes(x = day, y = pfpr)) +
   facet_wrap(. ~ patch)
 
-ggplot(mosy_out) +
+ggplot(mosy_spz) +
   geom_line(aes(x = day, y = spz)) +
   facet_wrap(. ~ patch)
