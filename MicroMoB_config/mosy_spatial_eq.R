@@ -82,13 +82,16 @@ rbind(M_analytic, M_simulation)
 # check Y
 # fqk_Omega_inv <- MASS::ginv(diag(f*q*kappa) + Omega)
 fqk_Omega_inv <- solve(diag(f*q*kappa) + Omega)
-Y_analytic <- as.vector(fqk_Omega_inv %*% (f*q*kappa*M_analytic))
+# Y_analytic <- as.vector(fqk_Omega_inv %*% (f*q*kappa*M_analytic))
 Y_simulation <- spat_out[time == tmax, value[Y_ix]]
+
+Y_analytic <- as.vector(fqk_Omega_inv %*% diag(f*q*kappa) %*% matrix(M_analytic))
+
 
 rbind(Y_analytic, Y_simulation)
 
 # check Z
-Z_analytic <- as.vector((Omega_inv %*% OmegaEIP) %*% (matrix(f*q*kappa) * ((M_analytic) - (fqk_Omega_inv %*% (f*q*kappa*(M_analytic))))))
+Z_analytic <- as.vector((Omega_inv %*% OmegaEIP) %*% (diag(f*q*kappa) %*% ((M_analytic) - (fqk_Omega_inv %*% (diag(f*q*kappa) %*% matrix(M_analytic))))))
 Z_simulation <- spat_out[time == tmax, value[Z_ix]]
 
 rbind(Z_analytic, Z_simulation)
@@ -100,13 +103,14 @@ rbind(Z_analytic, Z_simulation)
 
 # check M-Y
 Z <- Z_simulation
-MY_analytic <- as.vector((OmegaEIP_inv %*% Omega %*% Z) / matrix(f*q*kappa))
+# MY_analytic <- as.vector((OmegaEIP_inv %*% Omega %*% Z) / matrix(f*q*kappa))
+MY_analytic <- as.vector(diag(1/(f*q*kappa)) %*% OmegaEIP_inv %*% Omega %*% Z)
 MY_simulation <- spat_out[time == tmax, value[M_ix] - value[Y_ix]]
 
 rbind(MY_analytic, MY_simulation)
 
 # check Y
-Y_analytic <- as.vector(Omega_inv %*% (matrix(f*q*kappa) * matrix(MY_analytic)))
+Y_analytic <- as.vector(Omega_inv %*% (diag(f*q*kappa) %*% matrix(MY_analytic)))
 
 rbind(Y_analytic, Y_simulation)
 
