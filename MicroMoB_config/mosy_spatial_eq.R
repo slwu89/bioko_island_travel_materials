@@ -51,8 +51,8 @@ spat_ode <- function(t, y, pars) {
     Y_tau <- MYZ_tau[Y_ix]
   }
   dMdt <- Lambda - (Omega %*% M)
-  dYdt <- f*q*kappa*(M - Y) - (Omega %*% Y)
-  dZdt <- (OmegaEIP %*% (f*q*kappa*(M_tau - Y_tau))) - (Omega %*% Z)
+  dYdt <- diag(f*q*kappa) %*% (M - Y) - (Omega %*% Y)
+  dZdt <- OmegaEIP %*% diag(f*q*kappa) %*% (M_tau - Y_tau) - (Omega %*% Z)
   return(list(c(dMdt, dYdt, dZdt)))
 }
 
