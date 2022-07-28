@@ -113,7 +113,7 @@ beta <- t(Psi) %*% diag(as.vector(1/W), p, p)
 odds <- r/(1-rho)*pfpr/(1-(1+rho*r/eta/(1-rho))*pfpr)
 
 # Force of Infection (FOI) in each patch (not on each strata)
-h_patch <- as.vector(MASS::ginv(TaR) %*% odds)
+h_patch <- as.vector(solve(TaR) %*% odds)
 
 # EIR in patches
 H <- as.vector(N %*% TaR)
@@ -130,16 +130,7 @@ as.vector(TaR %*% h_patch) - (eta * P) / (rho * S)
 I_ambient <- as.vector(I %*% TaR)
 kappa <- (I_ambient / H) * c
 
-# surv <- peip
-# Y <- Z / surv
-# M <- (Z*(g + (f*q*p*kappa))) / (f*q*kappa*p*surv) # M from kappa
-# lambda <- g*M
-# 
-# M[242] <- 0
-# Y[242] <- 0
-# Z[242] <- 0
-# lambda[242] <- 0
-# rio_muni_eir <- h_patch[242]/b
+# once we have equilibrium Z, calculate the rest of the mosquito model at equilibrium
 
 # derived M-Y
 MY <- diag(1/as.vector(f*q*kappa), p, p) %*% OmegaEIP_inv %*% Omega %*% Z
@@ -163,7 +154,6 @@ Y[242] <- 0
 Z[242] <- 0
 Lambda[242] <- 0
 rio_muni_eir <- h_patch[242]/b
-
 
 # parameter set
 params <- list(
@@ -272,7 +262,7 @@ compute_EIR <- function(y, pars) {
   pars$beta %*% diag(pars$f * pars$q, nrow = pars$p) %*% Z
 }
 
-# basic spatial SIS model
+# basic spatial SIP (Susceptible-Infectious-Protected) model
 human_dt <- function(t, y, pars, EIR) {
   X <- y[pars$X_ix]
   P <- y[pars$P_ix]
@@ -284,11 +274,11 @@ human_dt <- function(t, y, pars, EIR) {
 
 # complete spatial DDE model
 spatialdynamics_dt <- function(t, y, pars) {
-  # browser()
+  
   # bloodfeeding
   EIR <- compute_EIR(y, pars)
   EIR <- as.vector(EIR)
-  EIR <- EIR + (Psi[242, ] * rio_muni_eir)
+  EIR <- EIR + (pars$Psi[242, ] * pars$rio_muni_eir)
   
   kappa <- compute_kappa(y, pars)
   kappa_tau <- compute_kappa_tau(t, y, pars)
@@ -327,4 +317,5 @@ system.time(
   out <- deSolve::dede(y = params$Y0, times = 0:(365*2), func = spatialdynamics_dt, parms = params)
 )
 
+# check we're at equilibrium
 rbind(as.numeric(out[nrow(out), params$X_ix+1]), I)
