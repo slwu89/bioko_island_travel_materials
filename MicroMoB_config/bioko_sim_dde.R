@@ -319,3 +319,14 @@ system.time(
 
 # check we're at equilibrium
 rbind(as.numeric(out[nrow(out), params$X_ix+1]), I)
+
+
+# --------------------------------------------------------------------------------
+#   spatial metrics
+# --------------------------------------------------------------------------------
+
+# human transmitting capacity distribution (HTCD)
+
+D <- rep(c/r, n)
+
+calD <- diag(as.vector(W)) %*% t(beta) %*% diag(b*D*N) %*% beta
