@@ -84,7 +84,8 @@ c <- 0.15
 
 calK <- diag(p)*0
 
-Omega <- diag(g, p) + (diag(sigma, p) %*% (diag(p) - calK))
+# Omega <- diag(g, p) + (diag(sigma, p) %*% (diag(p) - calK))
+Omega <- diag(g, p) + ((diag(p) - calK) %*% diag(sigma, p))
 Omega_inv <- solve(Omega)
 OmegaEIP <- expm::expm(-Omega * tau)
 OmegaEIP_inv <- expm::expm(Omega * tau)
@@ -330,3 +331,56 @@ rbind(as.numeric(out[nrow(out), params$X_ix+1]), I)
 D <- rep(c/r, n)
 
 calD <- diag(as.vector(W)) %*% t(beta) %*% diag(b*D*N) %*% beta
+
+
+
+# --------------------------------------------------------------------------------
+#   example with time varying Lambda
+# --------------------------------------------------------------------------------
+
+compute_Lambda.null <- function(t, y, pars) {
+  pars$Lambda * (1 + sin(t*pi*2/365))
+}
+
+spatialdynamics_dt <- function(t, y, pars) {
+  
+  # bloodfeeding
+  EIR <- compute_EIR(y, pars)
+  EIR <- as.vector(EIR)
+  EIR <- EIR + (pars$Psi[242, ] * pars$rio_muni_eir)
+  
+  kappa <- compute_kappa(y, pars)
+  kappa_tau <- compute_kappa_tau(t, y, pars)
+  
+  # aquatic stage
+  dL <- aquatic_dt.null(t, y, pars)
+  Lambda <- compute_Lambda.null(t, y, pars)
+  
+  # adult stage
+  dMYZ <- mosquito_dt(t, y, pars, Lambda, kappa, kappa_tau)
+  
+  # human
+  dX <- human_dt(t, y, pars, EIR)
+  
+  return(list(c(dL, dMYZ, dX)))
+  
+}
+
+
+
+
+Y0 <- rep(NaN, max(params$P_ix))
+Y0[params$M_ix] <- M
+Y0[params$Y_ix] <- Y
+Y0[params$Z_ix] <- Z
+Y0[params$X_ix] <- I
+Y0[params$P_ix] <- P
+
+params$Y0 <- Y0
+params$Lambda <- Lambda
+
+system.time(
+  out <- deSolve::dede(y = params$Y0, times = 0:(365*5), func = spatialdynamics_dt, parms = params)
+)
+
+plot(rowSums(out[, params$Z_ix+1]),type="l")
